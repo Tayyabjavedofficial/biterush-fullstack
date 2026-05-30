@@ -1,0 +1,14 @@
+{
+  "name": "biterush",
+  "version": "1.0.0",
+  "description": "Food Delivery Application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\"",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
