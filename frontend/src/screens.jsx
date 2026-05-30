@@ -141,6 +141,7 @@ function PopularCarousel({ foods, onOpen }) {
   const [isDragging, setIsDragging] = React.useState(false);
   const [startX, setStartX] = React.useState(0);
   const [scrollLeft, setScrollLeft] = React.useState(0);
+  const scrollIntervalRef = React.useRef(null);
 
   const updatePage = () => {
     if (!scrollRef.current) return;
@@ -157,12 +158,41 @@ function PopularCarousel({ foods, onOpen }) {
   };
 
   const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const x = e.pageX - (scrollRef.current?.offsetLeft || 0);
-    const walk = (x - startX) * 1.2;
-    if (scrollRef.current) {
+    if (!scrollRef.current) return;
+
+    if (isDragging) {
+      e.preventDefault();
+      const x = e.pageX - (scrollRef.current?.offsetLeft || 0);
+      const walk = (x - startX) * 1.2;
       scrollRef.current.scrollLeft = scrollLeft - walk;
+      return;
+    }
+
+    // Auto-scroll based on mouse position
+    const rect = scrollRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const threshold = 80; // pixels from edge to trigger scroll
+    const maxScroll = scrollRef.current.scrollWidth - scrollRef.current.clientWidth;
+    const currentScroll = scrollRef.current.scrollLeft;
+
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+
+    if (x < threshold && currentScroll > 0) {
+      // Cursor on left side - scroll left
+      scrollIntervalRef.current = setInterval(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollLeft = Math.max(0, scrollRef.current.scrollLeft - 8);
+          updatePage();
+        }
+      }, 30);
+    } else if (x > rect.width - threshold && currentScroll < maxScroll) {
+      // Cursor on right side - scroll right
+      scrollIntervalRef.current = setInterval(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollLeft = Math.min(maxScroll, scrollRef.current.scrollLeft + 8);
+          updatePage();
+        }
+      }, 30);
     }
   };
 
@@ -170,6 +200,17 @@ function PopularCarousel({ foods, onOpen }) {
     setIsDragging(false);
     updatePage();
   };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+    };
+  }, []);
 
   const totalPages = Math.ceil(foods.length / 3);
 
@@ -186,7 +227,7 @@ function PopularCarousel({ foods, onOpen }) {
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
           style={{ cursor: isDragging ? "grabbing" : "grab" }}
         >
           {foods.map((f) => (
@@ -216,6 +257,7 @@ function RecommendedCarousel({ foods, onOpen }) {
   const [isDragging, setIsDragging] = React.useState(false);
   const [startX, setStartX] = React.useState(0);
   const [scrollLeft, setScrollLeft] = React.useState(0);
+  const scrollIntervalRef = React.useRef(null);
 
   const updatePage = () => {
     if (!scrollRef.current) return;
@@ -232,12 +274,39 @@ function RecommendedCarousel({ foods, onOpen }) {
   };
 
   const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const x = e.pageX - (scrollRef.current?.offsetLeft || 0);
-    const walk = (x - startX) * 1.2;
-    if (scrollRef.current) {
+    if (!scrollRef.current) return;
+
+    if (isDragging) {
+      e.preventDefault();
+      const x = e.pageX - (scrollRef.current?.offsetLeft || 0);
+      const walk = (x - startX) * 1.2;
       scrollRef.current.scrollLeft = scrollLeft - walk;
+      return;
+    }
+
+    // Auto-scroll based on mouse position
+    const rect = scrollRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const threshold = 80;
+    const maxScroll = scrollRef.current.scrollWidth - scrollRef.current.clientWidth;
+    const currentScroll = scrollRef.current.scrollLeft;
+
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+
+    if (x < threshold && currentScroll > 0) {
+      scrollIntervalRef.current = setInterval(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollLeft = Math.max(0, scrollRef.current.scrollLeft - 8);
+          updatePage();
+        }
+      }, 30);
+    } else if (x > rect.width - threshold && currentScroll < maxScroll) {
+      scrollIntervalRef.current = setInterval(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollLeft = Math.min(maxScroll, scrollRef.current.scrollLeft + 8);
+          updatePage();
+        }
+      }, 30);
     }
   };
 
@@ -245,6 +314,17 @@ function RecommendedCarousel({ foods, onOpen }) {
     setIsDragging(false);
     updatePage();
   };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+    };
+  }, []);
 
   if (foods.length === 0) {
     return <div className="empty"><div className="big">🔎</div><p>No dishes match your search.</p></div>;
@@ -265,7 +345,7 @@ function RecommendedCarousel({ foods, onOpen }) {
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
           style={{ cursor: isDragging ? "grabbing" : "grab" }}
         >
           {foods.map((f, i) => (
