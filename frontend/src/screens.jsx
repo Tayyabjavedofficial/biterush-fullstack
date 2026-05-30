@@ -137,76 +137,100 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
 /* -------------------------------- Carousel -------------------------------- */
 function PopularCarousel({ foods, onOpen }) {
   const scrollRef = React.useRef(null);
+  const [page, setPage] = React.useState(0);
 
   const scroll = (dir) => {
     if (!scrollRef.current) return;
-    const cardWidth = 240 + 14; // card width + gap
+    const cardWidth = 240 + 14;
     const amount = cardWidth * 3;
     scrollRef.current.scrollBy({
       left: dir === "next" ? amount : -amount,
       behavior: "smooth",
     });
+    if (dir === "next") setPage((p) => Math.min(p + 1, Math.ceil(foods.length / 3) - 1));
+    else setPage((p) => Math.max(p - 1, 0));
   };
 
+  const totalPages = Math.ceil(foods.length / 3);
+
   return (
-    <div className="carousel-wrap">
-      <div className="sec-head" style={{ marginTop: 26, position: "relative", paddingRight: 0 }}>
+    <>
+      <div className="sec-head" style={{ marginTop: 26 }}>
         <h2><Flame size={17} style={{ verticalAlign: -3, color: "var(--accent-ink)" }} /> Popular near you</h2>
         <a>See all</a>
       </div>
-      <div className="carousel-btns">
+      <div className="carousel-wrap">
         <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous"><ChevronLeft size={20} /></button>
+        <div className="carousel-container">
+          <div className="hrow" ref={scrollRef}>
+            {foods.map((f) => (
+              <div key={f.id} className="hcard glass" onClick={() => onOpen(f)}>
+                <div className="hi"><Dish src={f.img} emoji={f.emoji} /></div>
+                <div>
+                  <h4>{f.name}</h4>
+                  <div className="meta"><Star size={12} className="star" fill="currentColor" /> {f.rating} · {f.time}</div>
+                  <div className="hp">${f.price.toFixed(2)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="carousel-dots">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <span key={i} className={page === i ? "active" : ""} />
+            ))}
+          </div>
+        </div>
         <button className="scroll-btn" onClick={() => scroll("next")} title="Next"><ChevronRight size={20} /></button>
       </div>
-      <div className="hrow" ref={scrollRef}>
-        {foods.map((f) => (
-          <div key={f.id} className="hcard glass" onClick={() => onOpen(f)}>
-            <div className="hi"><Dish src={f.img} emoji={f.emoji} /></div>
-            <div>
-              <h4>{f.name}</h4>
-              <div className="meta"><Star size={12} className="star" fill="currentColor" /> {f.rating} · {f.time}</div>
-              <div className="hp">${f.price.toFixed(2)}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    </>
   );
 }
 
 function RecommendedCarousel({ foods, onOpen }) {
   const scrollRef = React.useRef(null);
+  const [page, setPage] = React.useState(0);
 
   const scroll = (dir) => {
     if (!scrollRef.current) return;
-    const cardWidth = 158 + 14; // card width + gap (for grid cards)
+    const cardWidth = 158 + 14;
     const amount = cardWidth * 3;
     scrollRef.current.scrollBy({
       left: dir === "next" ? amount : -amount,
       behavior: "smooth",
     });
+    if (dir === "next") setPage((p) => Math.min(p + 1, Math.ceil(foods.length / 3) - 1));
+    else setPage((p) => Math.max(p - 1, 0));
   };
 
   if (foods.length === 0) {
     return <div className="empty"><div className="big">🔎</div><p>No dishes match your search.</p></div>;
   }
 
+  const totalPages = Math.ceil(foods.length / 3);
+
   return (
-    <div className="recommended-wrap">
-      <div className="sec-head" style={{ position: "relative", paddingRight: 0 }}>
+    <>
+      <div className="sec-head">
         <h2>Recommended for you</h2>
         <a>See all</a>
       </div>
-      <div className="carousel-btns">
+      <div className="carousel-wrap" style={{ marginBottom: "24px" }}>
         <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous"><ChevronLeft size={20} /></button>
+        <div className="carousel-container">
+          <div className="food-carousel" ref={scrollRef}>
+            {foods.map((f, i) => (
+              <FoodCard key={f.id} food={f} onOpen={onOpen} delay={i * 60} />
+            ))}
+          </div>
+          <div className="carousel-dots">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <span key={i} className={page === i ? "active" : ""} />
+            ))}
+          </div>
+        </div>
         <button className="scroll-btn" onClick={() => scroll("next")} title="Next"><ChevronRight size={20} /></button>
       </div>
-      <div className="food-carousel" ref={scrollRef}>
-        {foods.map((f, i) => (
-          <FoodCard key={f.id} food={f} onOpen={onOpen} delay={i * 60} />
-        ))}
-      </div>
-    </div>
+    </>
   );
 }
 
