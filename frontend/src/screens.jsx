@@ -262,7 +262,7 @@ function PopularCarousel({ foods, onOpen }) {
           style={{ cursor: isDragging ? "grabbing" : "grab" }}
         >
           {foods.map((f) => (
-            <div key={f.id} className="hcard glass" onClick={() => onOpen(f)} style={{ userSelect: "none" }}>
+            <div key={f.id} className="hcard" onClick={() => onOpen(f)} style={{ userSelect: "none" }}>
               <div className="hi"><Dish src={f.img} emoji={f.emoji} /></div>
               <div>
                 <h4>{f.name}</h4>
