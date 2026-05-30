@@ -76,8 +76,24 @@ export function HeroCarousel({ onOrderClick }) {
     if (onOrderClick) onOrderClick(s.action);
   };
 
+  const heroDoodles = [
+    { Icon: Pizza, top: "8%", right: "8%", size: 48, rot: -15, op: 0.9 },
+    { Icon: Star, top: "65%", left: "6%", size: 32, rot: 20, op: 0.8 },
+    { Icon: Sparkles, top: "12%", left: "4%", size: 28, rot: -8, op: 0.85 },
+    { Icon: Coffee, top: "72%", right: "5%", size: 36, rot: 12, op: 0.8 },
+  ];
+
   return (
     <div className="hero" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div className="hero-doodles">
+        {heroDoodles.map((d, i) => {
+          const I = d.Icon;
+          return (
+            <I key={i} className="hero-doodle" size={d.size} strokeWidth={1.4}
+              style={{ top: d.top, left: d.left, right: d.right, transform: `rotate(${d.rot}deg)`, opacity: d.op }} />
+          );
+        })}
+      </div>
       <div className="hero-card">
         <div className="hero-inner hero-anim" key={hero}>
           <div className="hero-text">
@@ -86,7 +102,7 @@ export function HeroCarousel({ onOrderClick }) {
             <p>{s.caption}</p>
             <button className="hero-btn" onClick={handleButtonClick}>{s.cta}</button>
           </div>
-          <div className="hero-food"><Dish src={s.img} emoji={s.emoji} /></div>
+          <div className="hero-food-img" key={`img-${hero}`}><img src={s.img} alt={s.title} /></div>
         </div>
       </div>
       <div className="dots">
