@@ -416,7 +416,9 @@ body { margin: 0; background: #0F1117; }
 
 /* ---------- notifications ---------- */
 .notifications-panel{position:fixed;top:60px;right:16px;width:320px;max-height:400px;border-radius:18px;
-  border:1px solid var(--border-soft);overflow-y:auto;z-index:99;box-shadow:0 10px 40px rgba(0,0,0,.2);}
+  border:1px solid var(--border-soft);overflow-y:auto;z-index:99;box-shadow:0 10px 40px rgba(0,0,0,.2);
+  scrollbar-width:none;}
+.notifications-panel::-webkit-scrollbar{display:none;}
 .notif-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;
   border-bottom:1px solid var(--border-soft);}
 .notif-header h3{font-family:var(--font-display);font-size:16px;font-weight:800;margin:0;}
