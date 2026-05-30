@@ -3,7 +3,7 @@ import {
   Search, Bell, MapPin, ChevronDown, Filter, Flame, Star, Clock,
   Navigation, ArrowLeft, Plus, Minus, Check, ShoppingBag, Receipt, Heart,
   CreditCard, Wallet, MapPin as Pin, Settings, LogOut, ChevronRight, User,
-  ChevronLeft,
+  ChevronLeft, CheckCircle, Gift, Truck, Zap, TrendingUp,
 } from "lucide-react";
 import { ThemeToggle, HeroCarousel, FoodCard, Dish } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -11,6 +11,16 @@ import { useCart } from "./context/CartContext.jsx";
 import { api } from "./api.js";
 
 const DELIVERY_FEE = 2.99;
+
+const getNotificationIcon = (iconName) => {
+  const icons = {
+    "check-circle": <CheckCircle size={20} strokeWidth={2} />,
+    "gift": <Gift size={20} strokeWidth={2} />,
+    "truck": <Truck size={20} strokeWidth={2} />,
+    "zap": <Zap size={20} strokeWidth={2} />,
+  };
+  return icons[iconName] || <Bell size={20} strokeWidth={2} />;
+};
 
 /* ---------------------------------- Auth ---------------------------------- */
 export function Auth({ onDone, onBack, theme, setTheme }) {
@@ -87,10 +97,10 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
   const [location, setLocation] = useState("Naperville, IL");
   const [filters, setFilters] = useState({ maxPrice: 20, minRating: 0, maxTime: 60 });
   const [notifications, setNotifications] = useState([
-    { id: 1, title: "Order Confirmed!", message: "Your order #12345 has been confirmed", time: "2 mins ago", read: false, icon: "✅" },
-    { id: 2, title: "Special Offer", message: "30% off burgers this week - Limited time!", time: "1 hour ago", read: false, icon: "🎉" },
-    { id: 3, title: "Delivery Arriving", message: "Your food will arrive in 15 minutes", time: "3 hours ago", read: true, icon: "🚗" },
-    { id: 4, title: "New Restaurant", message: "Crunch Kitchen just opened near you", time: "1 day ago", read: true, icon: "⭐" },
+    { id: 1, title: "Order Confirmed!", message: "Your order #12345 has been confirmed", time: "2 mins ago", read: false, icon: "check-circle" },
+    { id: 2, title: "Special Offer", message: "30% off burgers this week - Limited time!", time: "1 hour ago", read: false, icon: "gift" },
+    { id: 3, title: "Delivery Arriving", message: "Your food will arrive in 15 minutes", time: "3 hours ago", read: true, icon: "truck" },
+    { id: 4, title: "New Restaurant", message: "Crunch Kitchen just opened near you", time: "1 day ago", read: true, icon: "zap" },
   ]);
   const allCats = [{ id: 0, name: "All", emoji: "🍽️" }, ...categories];
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -182,7 +192,7 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
                   className={"notif-item" + (notif.read ? "" : " unread")}
                   onClick={() => handleNotificationClick(notif.id)}
                 >
-                  <span className="notif-icon">{notif.icon}</span>
+                  <div className="notif-icon">{getNotificationIcon(notif.icon)}</div>
                   <div className="notif-content">
                     <div className="notif-title">{notif.title}</div>
                     <div className="notif-message">{notif.message}</div>

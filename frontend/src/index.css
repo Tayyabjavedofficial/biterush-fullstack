@@ -426,7 +426,8 @@ body { margin: 0; background: #0F1117; }
   transition:background .2s ease;display:flex;gap:10px;align-items:flex-start;position:relative;}
 .notif-item:hover{background:var(--glass-2);}
 .notif-item.unread{background:var(--glass-2);}
-.notif-icon{font-size:22px;flex-shrink:0;}
+.notif-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  border-radius:10px;background:var(--glass);color:var(--primary);}
 .notif-content{flex:1;min-width:0;}
 .notif-title{font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:3px;}
 .notif-message{font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:5px;}
