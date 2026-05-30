@@ -3,6 +3,7 @@ import {
   Search, Bell, MapPin, ChevronDown, SlidersHorizontal, Flame, Star, Clock,
   Navigation, ArrowLeft, Plus, Minus, Check, ShoppingBag, Receipt, Heart,
   CreditCard, Wallet, MapPin as Pin, Settings, LogOut, ChevronRight, User,
+  ChevronLeft,
 } from "lucide-react";
 import { ThemeToggle, HeroCarousel, FoodCard, Dish } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -154,8 +155,8 @@ function PopularCarousel({ foods, onOpen }) {
         <a>See all</a>
       </div>
       <div className="carousel-btns">
-        <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous">←</button>
-        <button className="scroll-btn" onClick={() => scroll("next")} title="Next">→</button>
+        <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous"><ChevronLeft size={20} /></button>
+        <button className="scroll-btn" onClick={() => scroll("next")} title="Next"><ChevronRight size={20} /></button>
       </div>
       <div className="hrow" ref={scrollRef}>
         {foods.map((f) => (
@@ -197,8 +198,8 @@ function RecommendedCarousel({ foods, onOpen }) {
         <a>See all</a>
       </div>
       <div className="carousel-btns">
-        <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous">←</button>
-        <button className="scroll-btn" onClick={() => scroll("next")} title="Next">→</button>
+        <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous"><ChevronLeft size={20} /></button>
+        <button className="scroll-btn" onClick={() => scroll("next")} title="Next"><ChevronRight size={20} /></button>
       </div>
       <div className="food-carousel" ref={scrollRef}>
         {foods.map((f, i) => (
