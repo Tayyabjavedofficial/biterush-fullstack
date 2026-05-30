@@ -126,16 +126,7 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
         ))}
       </div>
 
-      <div className="sec-head"><h2>Recommended for you</h2><a>See all</a></div>
-      {list.length === 0 ? (
-        <div className="empty"><div className="big">🔎</div><p>No dishes match your search.</p></div>
-      ) : (
-        <div className="food-grid">
-          {list.map((f, i) => (
-            <FoodCard key={f.id} food={f} onOpen={onOpen} delay={i * 60} />
-          ))}
-        </div>
-      )}
+      <RecommendedCarousel foods={list} onOpen={onOpen} />
 
       <PopularCarousel foods={popular} onOpen={onOpen} />
     </div>
@@ -176,6 +167,42 @@ function PopularCarousel({ foods, onOpen }) {
               <div className="hp">${f.price.toFixed(2)}</div>
             </div>
           </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RecommendedCarousel({ foods, onOpen }) {
+  const scrollRef = React.useRef(null);
+
+  const scroll = (dir) => {
+    if (!scrollRef.current) return;
+    const cardWidth = 158 + 14; // card width + gap (for grid cards)
+    const amount = cardWidth * 3;
+    scrollRef.current.scrollBy({
+      left: dir === "next" ? amount : -amount,
+      behavior: "smooth",
+    });
+  };
+
+  if (foods.length === 0) {
+    return <div className="empty"><div className="big">🔎</div><p>No dishes match your search.</p></div>;
+  }
+
+  return (
+    <div className="recommended-wrap">
+      <div className="sec-head" style={{ position: "relative", paddingRight: 0 }}>
+        <h2>Recommended for you</h2>
+        <a>See all</a>
+      </div>
+      <div className="carousel-btns">
+        <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous">←</button>
+        <button className="scroll-btn" onClick={() => scroll("next")} title="Next">→</button>
+      </div>
+      <div className="food-carousel" ref={scrollRef}>
+        {foods.map((f, i) => (
+          <FoodCard key={f.id} food={f} onOpen={onOpen} delay={i * 60} />
         ))}
       </div>
     </div>
