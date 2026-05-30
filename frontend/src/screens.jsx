@@ -138,17 +138,37 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
 function PopularCarousel({ foods, onOpen }) {
   const scrollRef = React.useRef(null);
   const [page, setPage] = React.useState(0);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [startX, setStartX] = React.useState(0);
+  const [scrollLeft, setScrollLeft] = React.useState(0);
 
-  const scroll = (dir) => {
+  const updatePage = () => {
     if (!scrollRef.current) return;
     const cardWidth = 240 + 14;
-    const amount = cardWidth * 3;
-    scrollRef.current.scrollBy({
-      left: dir === "next" ? amount : -amount,
-      behavior: "smooth",
-    });
-    if (dir === "next") setPage((p) => Math.min(p + 1, Math.ceil(foods.length / 3) - 1));
-    else setPage((p) => Math.max(p - 1, 0));
+    const scrollPos = scrollRef.current.scrollLeft;
+    const newPage = Math.round(scrollPos / (cardWidth * 3));
+    setPage(Math.min(newPage, Math.ceil(foods.length / 3) - 1));
+  };
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - (scrollRef.current?.offsetLeft || 0));
+    setScrollLeft(scrollRef.current?.scrollLeft || 0);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - (scrollRef.current?.offsetLeft || 0);
+    const walk = (x - startX) * 1.2;
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollLeft - walk;
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    updatePage();
   };
 
   const totalPages = Math.ceil(foods.length / 3);
@@ -159,28 +179,32 @@ function PopularCarousel({ foods, onOpen }) {
         <h2><Flame size={17} style={{ verticalAlign: -3, color: "var(--accent-ink)" }} /> Popular near you</h2>
         <a>See all</a>
       </div>
-      <div className="carousel-wrap">
-        <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous"><ChevronLeft size={20} /></button>
-        <div className="carousel-container">
-          <div className="hrow" ref={scrollRef}>
-            {foods.map((f) => (
-              <div key={f.id} className="hcard glass" onClick={() => onOpen(f)}>
-                <div className="hi"><Dish src={f.img} emoji={f.emoji} /></div>
-                <div>
-                  <h4>{f.name}</h4>
-                  <div className="meta"><Star size={12} className="star" fill="currentColor" /> {f.rating} · {f.time}</div>
-                  <div className="hp">${f.price.toFixed(2)}</div>
-                </div>
+      <div className="carousel-container">
+        <div
+          className="hrow"
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ cursor: isDragging ? "grabbing" : "grab" }}
+        >
+          {foods.map((f) => (
+            <div key={f.id} className="hcard glass" onClick={() => onOpen(f)} style={{ userSelect: "none" }}>
+              <div className="hi"><Dish src={f.img} emoji={f.emoji} /></div>
+              <div>
+                <h4>{f.name}</h4>
+                <div className="meta"><Star size={12} className="star" fill="currentColor" /> {f.rating} · {f.time}</div>
+                <div className="hp">${f.price.toFixed(2)}</div>
               </div>
-            ))}
-          </div>
-          <div className="carousel-dots">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <span key={i} className={page === i ? "active" : ""} />
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-        <button className="scroll-btn" onClick={() => scroll("next")} title="Next"><ChevronRight size={20} /></button>
+        <div className="carousel-dots">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <span key={i} className={page === i ? "active" : ""} />
+          ))}
+        </div>
       </div>
     </>
   );
@@ -189,17 +213,37 @@ function PopularCarousel({ foods, onOpen }) {
 function RecommendedCarousel({ foods, onOpen }) {
   const scrollRef = React.useRef(null);
   const [page, setPage] = React.useState(0);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [startX, setStartX] = React.useState(0);
+  const [scrollLeft, setScrollLeft] = React.useState(0);
 
-  const scroll = (dir) => {
+  const updatePage = () => {
     if (!scrollRef.current) return;
     const cardWidth = 158 + 14;
-    const amount = cardWidth * 3;
-    scrollRef.current.scrollBy({
-      left: dir === "next" ? amount : -amount,
-      behavior: "smooth",
-    });
-    if (dir === "next") setPage((p) => Math.min(p + 1, Math.ceil(foods.length / 3) - 1));
-    else setPage((p) => Math.max(p - 1, 0));
+    const scrollPos = scrollRef.current.scrollLeft;
+    const newPage = Math.round(scrollPos / (cardWidth * 3));
+    setPage(Math.min(newPage, Math.ceil(foods.length / 3) - 1));
+  };
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - (scrollRef.current?.offsetLeft || 0));
+    setScrollLeft(scrollRef.current?.scrollLeft || 0);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - (scrollRef.current?.offsetLeft || 0);
+    const walk = (x - startX) * 1.2;
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollLeft - walk;
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    updatePage();
   };
 
   if (foods.length === 0) {
@@ -214,21 +258,25 @@ function RecommendedCarousel({ foods, onOpen }) {
         <h2>Recommended for you</h2>
         <a>See all</a>
       </div>
-      <div className="carousel-wrap" style={{ marginBottom: "24px" }}>
-        <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous"><ChevronLeft size={20} /></button>
-        <div className="carousel-container">
-          <div className="food-carousel" ref={scrollRef}>
-            {foods.map((f, i) => (
-              <FoodCard key={f.id} food={f} onOpen={onOpen} delay={i * 60} />
-            ))}
-          </div>
-          <div className="carousel-dots">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <span key={i} className={page === i ? "active" : ""} />
-            ))}
-          </div>
+      <div className="carousel-container">
+        <div
+          className="food-carousel"
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ cursor: isDragging ? "grabbing" : "grab" }}
+        >
+          {foods.map((f, i) => (
+            <FoodCard key={f.id} food={f} onOpen={onOpen} delay={i * 60} />
+          ))}
         </div>
-        <button className="scroll-btn" onClick={() => scroll("next")} title="Next"><ChevronRight size={20} /></button>
+        <div className="carousel-dots">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <span key={i} className={page === i ? "active" : ""} />
+          ))}
+        </div>
       </div>
     </>
   );
