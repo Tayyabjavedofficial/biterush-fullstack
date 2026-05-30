@@ -88,7 +88,7 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
     const q = query.toLowerCase();
     list = list.filter((f) => f.name.toLowerCase().includes(q) || f.restaurant.toLowerCase().includes(q));
   }
-  const popular = [...foods].sort((a, b) => b.rating - a.rating).slice(0, 5);
+  const popular = [...foods].sort((a, b) => b.rating - a.rating).slice(0, 12);
 
   return (
     <div className="container">
