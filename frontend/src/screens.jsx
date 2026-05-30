@@ -82,8 +82,19 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
   const [cat, setCat] = useState("All");
   const [query, setQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+  const [showLocation, setShowLocation] = useState(false);
+  const [location, setLocation] = useState("Naperville, IL");
   const [filters, setFilters] = useState({ maxPrice: 20, minRating: 0, maxTime: 60 });
   const allCats = [{ id: 0, name: "All", emoji: "🍽️" }, ...categories];
+
+  const handleHeroButtonClick = (action) => {
+    if (action === "order") {
+      setCat("All");
+      setQuery("");
+    } else if (action === "explore") {
+      setCat("Dessert");
+    }
+  };
 
   let list = cat === "All" ? foods : foods.filter((f) => f.category === cat);
   if (query.trim()) {
@@ -103,11 +114,11 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
   return (
     <div className="container">
       <header className="header">
-        <div className="loc">
+        <div className="loc" onClick={() => setShowLocation(true)} style={{ cursor: "pointer" }}>
           <div className="loc-ic"><MapPin size={18} /></div>
           <div className="loc-txt">
             <small>Deliver to</small>
-            <span>Naperville, IL <ChevronDown size={14} /></span>
+            <span>{location} <ChevronDown size={14} /></span>
           </div>
         </div>
         <div className="h-right">
@@ -115,6 +126,30 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
           <button className="icon-btn"><Bell size={18} /><span className="dot" /></button>
         </div>
       </header>
+
+      {showLocation && (
+        <div className="modal-overlay" onClick={() => setShowLocation(false)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h2>Select Delivery Location</h2>
+              <button onClick={() => setShowLocation(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "24px" }}>×</button>
+            </div>
+            <div className="location-options">
+              {["Naperville, IL", "Chicago, IL", "Aurora, IL", "Downers Grove, IL", "Wheaton, IL"].map((loc) => (
+                <button key={loc} className="location-btn" onClick={() => { setLocation(loc); setShowLocation(false); }}>
+                  <MapPin size={16} /> {loc}
+                </button>
+              ))}
+            </div>
+            <input type="text" placeholder="Enter custom location" className="location-input glass" onKeyDown={(e) => {
+              if (e.key === "Enter" && e.target.value) {
+                setLocation(e.target.value);
+                setShowLocation(false);
+              }
+            }} />
+          </div>
+        </div>
+      )}
 
       <div className="greet">
         <small>Hey there,</small>
@@ -124,7 +159,7 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
       <div className="search glass">
         <Search size={19} color="var(--muted)" />
         <input placeholder="Search for dishes or restaurants" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button className="filt" onClick={() => setShowFilter(!showFilter)} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0 }}>
+        <button className="filt" onClick={() => setShowFilter(!showFilter)} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, color: "white" }}>
           <Filter size={17} />
         </button>
       </div>
@@ -148,7 +183,7 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
         </div>
       )}
 
-      <HeroCarousel />
+      <HeroCarousel onOrderClick={handleHeroButtonClick} />
 
       <div className="chips">
         {allCats.map((c) => (

@@ -32,8 +32,8 @@ export const FOODS_FALLBACK = [
 ];
 
 export const HERO_SLIDES = [
-  { badge: "30% OFF", title: "Special Offer", caption: "Get 30% off all burgers this week", emoji: "🍔", img: "https://loremflickr.com/600/600/burger?lock=15", cta: "Order Now" },
-  { badge: "FREE", title: "Free Delivery", caption: "On your first 3 orders, no minimum", emoji: "🍕", img: "https://loremflickr.com/600/600/pizza?lock=25", cta: "Grab Deal" },
-  { badge: "NEW", title: "Sweet Tooth?", caption: "Fresh desserts starting at just $3.50", emoji: "🍰", img: "https://loremflickr.com/600/600/cake?lock=70", cta: "Explore" },
-  { badge: "HEALTHY", title: "Fresh & Cold", caption: "Cold-pressed juices made daily", emoji: "🥤", img: "https://loremflickr.com/600/600/juice?lock=65", cta: "Order Now" },
+  { badge: "30% OFF", title: "Special Offer", caption: "Get 30% off all burgers this week", emoji: "🍔", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=600&fit=crop", cta: "Order Now", action: "order" },
+  { badge: "FREE", title: "Free Delivery", caption: "On your first 3 orders, no minimum", emoji: "🍕", img: "https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=600&h=600&fit=crop", cta: "Grab Deal", action: "order" },
+  { badge: "NEW", title: "Sweet Tooth?", caption: "Fresh desserts starting at just $3.50", emoji: "🍰", img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&h=600&fit=crop", cta: "Explore", action: "explore" },
+  { badge: "HEALTHY", title: "Fresh & Cold", caption: "Cold-pressed juices made daily", emoji: "🥤", img: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&h=600&fit=crop", cta: "Order Now", action: "order" },
 ];

@@ -61,7 +61,7 @@ export function Backdrop() {
   );
 }
 
-export function HeroCarousel() {
+export function HeroCarousel({ onOrderClick }) {
   const [hero, setHero] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -72,6 +72,10 @@ export function HeroCarousel() {
   }, [paused]);
 
   const s = HERO_SLIDES[hero];
+  const handleButtonClick = () => {
+    if (onOrderClick) onOrderClick(s.action);
+  };
+
   return (
     <div className="hero" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="hero-card">
@@ -80,7 +84,7 @@ export function HeroCarousel() {
             <span className="hero-badge">{s.badge}</span>
             <h3>{s.title}</h3>
             <p>{s.caption}</p>
-            <button className="hero-btn">{s.cta}</button>
+            <button className="hero-btn" onClick={handleButtonClick}>{s.cta}</button>
           </div>
           <div className="hero-food"><Dish src={s.img} emoji={s.emoji} /></div>
         </div>
