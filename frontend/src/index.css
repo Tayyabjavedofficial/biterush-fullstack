@@ -150,9 +150,11 @@ h1,h2,h3,.display{font-family:var(--font-display);letter-spacing:-.02em;}
 .chips::-webkit-scrollbar{display:none;}
 .chip{display:flex;align-items:center;gap:7px;padding:10px 15px;border-radius:14px;white-space:nowrap;cursor:pointer;
   background:var(--glass);border:1px solid var(--border);color:var(--text);font-weight:600;font-size:13.5px;
-  box-shadow:var(--inset);transition:all .2s ease;}
+  box-shadow:var(--inset);transition:transform .3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow .3s ease;}
 .chip .em{font-size:15px;filter:none;}
+.chip:hover{transform:translateY(-6px);box-shadow:0 2px 8px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.1);}
 .chip.on{background:var(--primary);color:var(--btn-text);border-color:transparent;box-shadow:0 10px 22px -8px var(--glow);}
+.chip.on:hover{transform:translateY(-6px);box-shadow:0 4px 16px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.16);}
 
 /* food grid */
 .food-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:8px;}
