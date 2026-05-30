@@ -81,6 +81,8 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
 export function Home({ foods, categories, onOpen, theme, setTheme }) {
   const [cat, setCat] = useState("All");
   const [query, setQuery] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
+  const [filters, setFilters] = useState({ maxPrice: 20, minRating: 0, maxTime: 60 });
   const allCats = [{ id: 0, name: "All", emoji: "🍽️" }, ...categories];
 
   let list = cat === "All" ? foods : foods.filter((f) => f.category === cat);
@@ -88,6 +90,14 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
     const q = query.toLowerCase();
     list = list.filter((f) => f.name.toLowerCase().includes(q) || f.restaurant.toLowerCase().includes(q));
   }
+
+  // Apply filters
+  list = list.filter((f) =>
+    f.price <= filters.maxPrice &&
+    f.rating >= filters.minRating &&
+    parseInt(f.time) <= filters.maxTime
+  );
+
   const popular = [...foods].sort((a, b) => b.rating - a.rating).slice(0, 12);
 
   return (
@@ -114,8 +124,29 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
       <div className="search glass">
         <Search size={19} color="var(--muted)" />
         <input placeholder="Search for dishes or restaurants" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <div className="filt"><SlidersHorizontal size={17} /></div>
+        <button className="filt" onClick={() => setShowFilter(!showFilter)} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0 }}>
+          <SlidersHorizontal size={17} />
+        </button>
       </div>
+
+      {showFilter && (
+        <div className="filter-panel glass">
+          <h3>Filter Results</h3>
+          <div className="filter-item">
+            <label>Max Price: ${filters.maxPrice}</label>
+            <input type="range" min="0" max="20" value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: parseFloat(e.target.value) })} />
+          </div>
+          <div className="filter-item">
+            <label>Min Rating: {filters.minRating}</label>
+            <input type="range" min="0" max="5" step="0.5" value={filters.minRating} onChange={(e) => setFilters({ ...filters, minRating: parseFloat(e.target.value) })} />
+          </div>
+          <div className="filter-item">
+            <label>Max Delivery Time: {filters.maxTime} min</label>
+            <input type="range" min="5" max="60" step="5" value={filters.maxTime} onChange={(e) => setFilters({ ...filters, maxTime: parseInt(e.target.value) })} />
+          </div>
+          <button className="cta" onClick={() => setShowFilter(false)}>Done</button>
+        </div>
+      )}
 
       <HeroCarousel />
 
