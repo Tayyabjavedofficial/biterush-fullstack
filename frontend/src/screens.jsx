@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Search, Bell, MapPin, ChevronDown, SlidersHorizontal, Flame, Star, Clock,
+  Search, Bell, MapPin, ChevronDown, Filter, Flame, Star, Clock,
   Navigation, ArrowLeft, Plus, Minus, Check, ShoppingBag, Receipt, Heart,
   CreditCard, Wallet, MapPin as Pin, Settings, LogOut, ChevronRight, User,
   ChevronLeft,
@@ -125,7 +125,7 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
         <Search size={19} color="var(--muted)" />
         <input placeholder="Search for dishes or restaurants" value={query} onChange={(e) => setQuery(e.target.value)} />
         <button className="filt" onClick={() => setShowFilter(!showFilter)} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0 }}>
-          <SlidersHorizontal size={17} />
+          <Filter size={17} />
         </button>
       </div>
 
