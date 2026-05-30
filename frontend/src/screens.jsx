@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search, Bell, MapPin, ChevronDown, SlidersHorizontal, Flame, Star, Clock,
   Navigation, ArrowLeft, Plus, Minus, Check, ShoppingBag, Receipt, Heart,
@@ -137,12 +137,37 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
         </div>
       )}
 
-      <div className="sec-head" style={{ marginTop: 26 }}>
+      <PopularCarousel foods={popular} onOpen={onOpen} />
+    </div>
+  );
+}
+
+/* -------------------------------- Carousel -------------------------------- */
+function PopularCarousel({ foods, onOpen }) {
+  const scrollRef = React.useRef(null);
+
+  const scroll = (dir) => {
+    if (!scrollRef.current) return;
+    const cardWidth = 240 + 14; // card width + gap
+    const amount = cardWidth * 3;
+    scrollRef.current.scrollBy({
+      left: dir === "next" ? amount : -amount,
+      behavior: "smooth",
+    });
+  };
+
+  return (
+    <div className="carousel-wrap">
+      <div className="sec-head" style={{ marginTop: 26, position: "relative", paddingRight: 0 }}>
         <h2><Flame size={17} style={{ verticalAlign: -3, color: "var(--accent-ink)" }} /> Popular near you</h2>
         <a>See all</a>
       </div>
-      <div className="hrow">
-        {popular.map((f) => (
+      <div className="carousel-btns">
+        <button className="scroll-btn" onClick={() => scroll("prev")} title="Previous">←</button>
+        <button className="scroll-btn" onClick={() => scroll("next")} title="Next">→</button>
+      </div>
+      <div className="hrow" ref={scrollRef}>
+        {foods.map((f) => (
           <div key={f.id} className="hcard glass" onClick={() => onOpen(f)}>
             <div className="hi"><Dish src={f.img} emoji={f.emoji} /></div>
             <div>
