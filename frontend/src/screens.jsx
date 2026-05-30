@@ -83,9 +83,17 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
   const [query, setQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [location, setLocation] = useState("Naperville, IL");
   const [filters, setFilters] = useState({ maxPrice: 20, minRating: 0, maxTime: 60 });
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: "Order Confirmed!", message: "Your order #12345 has been confirmed", time: "2 mins ago", read: false, icon: "✅" },
+    { id: 2, title: "Special Offer", message: "30% off burgers this week - Limited time!", time: "1 hour ago", read: false, icon: "🎉" },
+    { id: 3, title: "Delivery Arriving", message: "Your food will arrive in 15 minutes", time: "3 hours ago", read: true, icon: "🚗" },
+    { id: 4, title: "New Restaurant", message: "Crunch Kitchen just opened near you", time: "1 day ago", read: true, icon: "⭐" },
+  ]);
   const allCats = [{ id: 0, name: "All", emoji: "🍽️" }, ...categories];
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleHeroButtonClick = (action) => {
     if (action === "order") {
@@ -94,6 +102,10 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
     } else if (action === "explore") {
       setCat("Dessert");
     }
+  };
+
+  const handleNotificationClick = (id) => {
+    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   let list = cat === "All" ? foods : foods.filter((f) => f.category === cat);
@@ -123,7 +135,10 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
         </div>
         <div className="h-right">
           <ThemeToggle theme={theme} setTheme={setTheme} />
-          <button className="icon-btn"><Bell size={18} /><span className="dot" /></button>
+          <button className="icon-btn" onClick={() => setShowNotifications(!showNotifications)}>
+            <Bell size={18} />
+            {unreadCount > 0 && <span className="dot" />}
+          </button>
         </div>
       </header>
 
@@ -147,6 +162,36 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
                 setShowLocation(false);
               }
             }} />
+          </div>
+        </div>
+      )}
+
+      {showNotifications && (
+        <div className="notifications-panel glass">
+          <div className="notif-header">
+            <h3>Notifications</h3>
+            <button onClick={() => setShowNotifications(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: "var(--text)" }}>×</button>
+          </div>
+          <div className="notif-list">
+            {notifications.length === 0 ? (
+              <div className="notif-empty">No notifications</div>
+            ) : (
+              notifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  className={"notif-item" + (notif.read ? "" : " unread")}
+                  onClick={() => handleNotificationClick(notif.id)}
+                >
+                  <span className="notif-icon">{notif.icon}</span>
+                  <div className="notif-content">
+                    <div className="notif-title">{notif.title}</div>
+                    <div className="notif-message">{notif.message}</div>
+                    <div className="notif-time">{notif.time}</div>
+                  </div>
+                  {!notif.read && <div className="notif-dot" />}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
