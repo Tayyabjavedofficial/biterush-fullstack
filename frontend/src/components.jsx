@@ -127,14 +127,18 @@ export function HeroCarousel({ onOrderClick }) {
   );
 }
 
-export function FoodCard({ food, onOpen, delay }) {
+export function FoodCard({ food, onOpen, delay, showIcon }) {
   const [fav, setFav] = useState(false);
   return (
     <div className="fcard glass reveal" style={{ animationDelay: `${delay}ms` }} onClick={() => onOpen(food)}>
       <div className={"fav" + (fav ? " active" : "")} onClick={(e) => { e.stopPropagation(); setFav((f) => !f); }}>
         <Heart size={15} fill={fav ? "#ef4444" : "none"} />
       </div>
-      <div className="food-img-icon">{getFoodIcon(food.category)}</div>
+      {showIcon ? (
+        <div className="food-img-icon">{getFoodIcon(food.category)}</div>
+      ) : (
+        <div className="food-img"><Dish src={food.img} emoji={food.emoji} /></div>
+      )}
       <h4>{food.name}</h4>
       <div className="rest">{food.restaurant}</div>
       <div className="frow">

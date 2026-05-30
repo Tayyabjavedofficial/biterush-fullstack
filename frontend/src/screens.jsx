@@ -3,7 +3,7 @@ import {
   Search, Bell, MapPin, ChevronDown, Filter, Flame, Star, Clock,
   Navigation, ArrowLeft, Plus, Minus, Check, ShoppingBag, Receipt, Heart,
   CreditCard, Wallet, MapPin as Pin, Settings, LogOut, ChevronRight, User,
-  ChevronLeft, CheckCircle, Gift, Truck, Zap, TrendingUp,
+  ChevronLeft, CheckCircle, Gift, Truck, Zap, TrendingUp, Sandwich, UtensilsCrossed, Cookie, CupSoda, Pizza,
 } from "lucide-react";
 import { ThemeToggle, HeroCarousel, FoodCard, Dish } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -20,6 +20,19 @@ const getNotificationIcon = (iconName) => {
     "zap": <Zap size={20} strokeWidth={2} />,
   };
   return icons[iconName] || <Bell size={20} strokeWidth={2} />;
+};
+
+const getCategoryIcon = (categoryName) => {
+  const icons = {
+    "All": <ShoppingBag size={16} strokeWidth={2} />,
+    "Burger": <Sandwich size={16} strokeWidth={2} />,
+    "Pizza": <Pizza size={16} strokeWidth={2} />,
+    "Chicken": <UtensilsCrossed size={16} strokeWidth={2} />,
+    "Fries": <Zap size={16} strokeWidth={2} />,
+    "Drinks": <CupSoda size={16} strokeWidth={2} />,
+    "Dessert": <Cookie size={16} strokeWidth={2} />,
+  };
+  return icons[categoryName] || <ShoppingBag size={16} strokeWidth={2} />;
 };
 
 /* ---------------------------------- Auth ---------------------------------- */
@@ -243,7 +256,7 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
       <div className="chips">
         {allCats.map((c) => (
           <div key={c.name} className={"chip" + (cat === c.name ? " on" : "")} onClick={() => setCat(c.name)}>
-            <span className="em">{c.emoji}</span>{c.name}
+            {getCategoryIcon(c.name)}{c.name}
           </div>
         ))}
       </div>
