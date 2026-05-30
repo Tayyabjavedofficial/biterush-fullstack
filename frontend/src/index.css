@@ -182,6 +182,13 @@ h1,h2,h3,.display{font-family:var(--font-display);letter-spacing:-.02em;}
 .food-img .em{font-size:56px;}
 .fcard:hover .ph,.fcard:hover .em{transform:scale(1.12) rotate(-3deg);}
 .fcard:hover .food-img::before{transform:scale(1.14);}
+.food-img-icon{width:112px;height:112px;border-radius:50%;display:grid;place-items:center;margin:8px 0 12px;position:relative;
+  animation:floatY 3.6s ease-in-out infinite;color:var(--primary);background:var(--glass);
+  box-shadow:0 12px 24px -10px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1);}
+.food-img-icon::before{content:"";position:absolute;inset:-4px;border-radius:50%;
+  background:radial-gradient(circle at 50% 45%,var(--glow),transparent 68%);filter:blur(5px);transition:transform .3s ease;}
+.fcard:hover .food-img-icon{transform:scale(1.12) rotate(-3deg);}
+.fcard:hover .food-img-icon::before{transform:scale(1.14);}
 .fcard h4{font-family:var(--font-display);font-size:14.5px;font-weight:700;line-height:1.2;}
 .fcard .rest{color:var(--muted);font-size:11.5px;font-weight:600;margin:3px 0 11px;}
 .fcard .frow{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:auto;}

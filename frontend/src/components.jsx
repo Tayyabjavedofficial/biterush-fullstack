@@ -3,9 +3,22 @@ import {
   Search, Bell, MapPin, ChevronDown, SlidersHorizontal, Heart, Plus,
   Home as HomeIcon, ShoppingBag, Receipt, User, Sun, Moon, Star,
   Pizza, Coffee, Croissant, Cookie, Soup, CupSoda, Sandwich, Cherry, Sparkles, Citrus,
+  Egg, UtensilsCrossed, GripHorizontal, Zap,
 } from "lucide-react";
 import { HERO_SLIDES } from "./data.js";
 import { useCart } from "./context/CartContext.jsx";
+
+const getFoodIcon = (category) => {
+  const icons = {
+    "Burger": <Sandwich size={48} strokeWidth={1.8} />,
+    "Pizza": <Pizza size={48} strokeWidth={1.8} />,
+    "Chicken": <UtensilsCrossed size={48} strokeWidth={1.8} />,
+    "Fries": <Zap size={48} strokeWidth={1.8} />,
+    "Drinks": <CupSoda size={48} strokeWidth={1.8} />,
+    "Dessert": <Cookie size={48} strokeWidth={1.8} />,
+  };
+  return icons[category] || <UtensilsCrossed size={48} strokeWidth={1.8} />;
+};
 
 export function Dish({ src, emoji }) {
   const [failed, setFailed] = useState(false);
@@ -121,7 +134,7 @@ export function FoodCard({ food, onOpen, delay }) {
       <div className={"fav" + (fav ? " active" : "")} onClick={(e) => { e.stopPropagation(); setFav((f) => !f); }}>
         <Heart size={15} fill={fav ? "#ef4444" : "none"} />
       </div>
-      <div className="food-img"><Dish src={food.img} emoji={food.emoji} /></div>
+      <div className="food-img-icon">{getFoodIcon(food.category)}</div>
       <h4>{food.name}</h4>
       <div className="rest">{food.restaurant}</div>
       <div className="frow">
