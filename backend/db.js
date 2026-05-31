@@ -1,9 +1,13 @@
 import pkg from "pg";
 const { Pool } = pkg;
 
+if (!process.env.DATABASE_URL) {
+  console.warn("DATABASE_URL not set, using fallback mode");
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  connectionString: process.env.DATABASE_URL || "postgresql://postgres:password@localhost:5432/postgres",
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
 async function initDatabase() {
