@@ -5,6 +5,12 @@ const getToken = () => localStorage.getItem("biterush_token");
 async function request(path, { method = "GET", body, auth = false } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (auth && getToken()) headers.Authorization = `Bearer ${getToken()}`;
+
+  const bypassToken = import.meta.env.VITE_VERCEL_BYPASS_TOKEN;
+  if (bypassToken) {
+    headers["x-vercel-protection-bypass"] = bypassToken;
+  }
+
   const res = await fetch(BASE + path, {
     method,
     headers,
