@@ -11,9 +11,9 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (req, res) => res.json({ ok: true, service: "biterush-api" }));
-app.get("/api/categories", async (req, res) => {
+app.get("/api/categories", (req, res) => {
   try {
-    const categories = await db.all("SELECT * FROM categories");
+    const categories = db.all("SELECT * FROM categories");
     res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });

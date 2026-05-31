@@ -1,0 +1,26 @@
+
+> biterush-backend@1.0.0 start
+> node server.js
+
+Database seeded with 6 foods and 6 categories.
+node:events:487
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (node:net:2008:16)
+    at listenInCluster (node:net:2065:12)
+    at Server.listen (node:net:2170:7)
+    at app.listen (E:\ANTIGRAVITY PROJECTS\Semester Project\Food Delivery Application 2\biterush-fullstack\biterush-fullstack\backend\node_modules\express\lib\application.js:635:24)
+    at file:///E:/ANTIGRAVITY%20PROJECTS/Semester%20Project/Food%20Delivery%20Application%202/biterush-fullstack/biterush-fullstack/backend/server.js:20:5
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:2044:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+
+Node.js v25.9.0
