@@ -21,9 +21,19 @@ export function ProfileScreen({ go, theme, setTheme }) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        if (!token || !user) {
+          setLoading(false);
+          return;
+        }
+
         const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch profile");
+        }
+
         const data = await res.json();
         setProfile(data);
         setFormData({
@@ -41,7 +51,7 @@ export function ProfileScreen({ go, theme, setTheme }) {
       }
     };
 
-    if (token && user) fetchProfile();
+    fetchProfile();
   }, [token, user]);
 
   const handleFileSelect = (e) => {
@@ -94,6 +104,26 @@ export function ProfileScreen({ go, theme, setTheme }) {
     logout();
     go("home");
   };
+
+  if (!user || !token) {
+    return (
+      <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-full min-h-screen flex flex-col items-center justify-center pb-20`}>
+        <div className="text-center px-6">
+          <div className="text-8xl mb-6">👤</div>
+          <h2 className="text-3xl font-bold mb-3">Sign In Required</h2>
+          <p className={`${theme === "dark" ? "text-gray-300" : "text-gray-600"} text-lg mb-8`}>
+            Please sign in to view and manage your profile
+          </p>
+          <button
+            onClick={() => go("auth", { next: "profile" })}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-lg text-lg transition"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading)
     return (
