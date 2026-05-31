@@ -343,6 +343,25 @@ body { margin: 0; background: #0F1117; }
 .muted-note{text-align:center;color:var(--muted);font-size:11.5px;margin-top:14px;line-height:1.5;}
 .cta:disabled{opacity:.55;cursor:default;}
 
+/* ---------- premium auth signin card ---------- */
+.auth-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border-soft);}
+.auth-card-title{flex:1;text-align:center;font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text);}
+.auth-signin{max-width:380px;}
+.auth-signin-content{display:flex;flex-direction:column;align-items:center;text-align:center;}
+.auth-icon-circle{width:84px;height:84px;border-radius:26px;display:grid;place-items:center;background:var(--glass);border:1px solid var(--border);color:var(--primary);margin-bottom:20px;box-shadow:var(--inset);}
+.auth-signin-heading{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--text);margin-bottom:8px;line-height:1.2;}
+.auth-signin-subtext{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:28px;max-width:300px;}
+.auth-primary-btn{margin-bottom:12px;font-size:15px;padding:16px;}
+.auth-secondary-btn{width:100%;border:1px solid var(--border);background:var(--glass);color:var(--text);padding:15px;border-radius:18px;font-weight:700;font-size:14.5px;cursor:pointer;font-family:var(--font-body);transition:all .25s ease;box-shadow:var(--inset);}
+.auth-secondary-btn:hover{background:var(--glass-2);border-color:var(--border);}
+.auth-secondary-btn:active{transform:scale(.98);}
+
+/* ---------- premium auth form ---------- */
+.auth-form-caption{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+.field select{cursor:pointer;appearance:none;padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:20px;}
+.field select option{background:var(--bg-2);color:var(--text);padding:8px;}
+.field input:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--glow);}
+
 /* ---------- generic sub-page ---------- */
 .page{width:100%;max-width:560px;margin:0 auto;padding:22px 18px 130px;position:relative;z-index:1;}
 .page-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;}

@@ -65,10 +65,11 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
   return (
     <div className="auth-wrap">
       <div className="auth-card glass">
-        <div className="d-head">
+        <div className="auth-card-header">
           <button className="icon-btn" onClick={onBack}><ArrowLeft size={19} /></button>
           <ThemeToggle theme={theme} setTheme={setTheme} />
         </div>
+
         <div className="brand">Bite<span>Rush</span></div>
         <div className="sub">Crave it. Tap it. Get it.</div>
 
@@ -79,15 +80,36 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
 
         {err && <div className="err">{err}</div>}
 
-        {mode === "register" && (
+        {mode === "login" ? (
           <>
+            <p className="auth-form-caption">Welcome back! Sign in to your account.</p>
             <div className="field">
-              <label>Full name</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tayyab Khan" />
+              <label>Email</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
             </div>
             <div className="field">
-              <label>What's your role?</label>
-              <select value={role} onChange={(e) => setRole(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px' }}>
+              <label>Password</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="auth-form-caption">Create your BiteRush account and start ordering faster.</p>
+            <div className="field">
+              <label>Full name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" />
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+            </div>
+            <div className="field">
+              <label>Password</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" />
+            </div>
+            <div className="field">
+              <label>Your role</label>
+              <select value={role} onChange={(e) => setRole(e.target.value)}>
                 <option value="customer">👤 Customer - Order food</option>
                 <option value="delivery_rider">🚴 Delivery Rider - Deliver orders</option>
                 <option value="admin">👨‍💼 Admin - Manage platform</option>
@@ -95,19 +117,11 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
             </div>
           </>
         )}
-        <div className="field">
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-        </div>
-        <div className="field">
-          <label>Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" />
-        </div>
 
         <button className="cta" onClick={submit} disabled={busy}>
           {busy ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
         </button>
-        <div className="muted-note">Accounts and orders are stored in the backend SQLite database. Create an account to get started.</div>
+        <div className="muted-note">Your account is secure. We protect your data with industry-standard encryption.</div>
       </div>
     </div>
   );
