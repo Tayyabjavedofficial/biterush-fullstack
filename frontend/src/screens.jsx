@@ -355,6 +355,13 @@ function PopularCarousel({ foods, onOpen }) {
 
   const totalPages = Math.ceil(foods.length / 3);
 
+  const goToPage = (pageNum) => {
+    if (!scrollRef.current) return;
+    const cardWidth = 240 + 14;
+    scrollRef.current.scrollLeft = pageNum * (cardWidth * 3);
+    setPage(pageNum);
+  };
+
   return (
     <>
       <div className="sec-head" style={{ marginTop: 26 }}>
@@ -384,7 +391,7 @@ function PopularCarousel({ foods, onOpen }) {
         </div>
         <div className="carousel-dots">
           {Array.from({ length: totalPages }).map((_, i) => (
-            <span key={i} className={page === i ? "active" : ""} />
+            <span key={i} className={page === i ? "active" : ""} onClick={() => goToPage(i)} style={{ cursor: "pointer" }} />
           ))}
         </div>
       </div>
@@ -473,6 +480,13 @@ function RecommendedCarousel({ foods, onOpen }) {
 
   const totalPages = Math.ceil(foods.length / 3);
 
+  const goToPage = (pageNum) => {
+    if (!scrollRef.current) return;
+    const cardWidth = 158 + 14;
+    scrollRef.current.scrollLeft = pageNum * (cardWidth * 3);
+    setPage(pageNum);
+  };
+
   return (
     <>
       <div className="sec-head">
@@ -495,7 +509,7 @@ function RecommendedCarousel({ foods, onOpen }) {
         </div>
         <div className="carousel-dots">
           {Array.from({ length: totalPages }).map((_, i) => (
-            <span key={i} className={page === i ? "active" : ""} />
+            <span key={i} className={page === i ? "active" : ""} onClick={() => goToPage(i)} style={{ cursor: "pointer" }} />
           ))}
         </div>
       </div>
