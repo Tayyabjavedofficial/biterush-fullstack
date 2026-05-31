@@ -44,6 +44,7 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("customer");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -52,7 +53,7 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
     setBusy(true);
     try {
       if (mode === "login") await login(email, password);
-      else await register(name, email, password);
+      else await register(name, email, password, role);
       onDone();
     } catch (e) {
       setErr(e.message || "Something went wrong");
@@ -79,10 +80,20 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
         {err && <div className="err">{err}</div>}
 
         {mode === "register" && (
-          <div className="field">
-            <label>Full name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tayyab Khan" />
-          </div>
+          <>
+            <div className="field">
+              <label>Full name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tayyab Khan" />
+            </div>
+            <div className="field">
+              <label>What's your role?</label>
+              <select value={role} onChange={(e) => setRole(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px' }}>
+                <option value="customer">👤 Customer - Order food</option>
+                <option value="delivery_rider">🚴 Delivery Rider - Deliver orders</option>
+                <option value="admin">👨‍💼 Admin - Manage platform</option>
+              </select>
+            </div>
+          </>
         )}
         <div className="field">
           <label>Email</label>

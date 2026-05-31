@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Backdrop, BottomNav } from "./components.jsx";
-import { Auth, Home, FoodDetail, Cart, Checkout, Orders, Profile, Search } from "./screens.jsx";
+import { Auth, Home, FoodDetail, Cart, Checkout, Orders, Search } from "./screens.jsx";
+import { ProfileScreen as Profile } from "./profile.jsx";
 import { AdminDashboard, OwnerDashboard, DeliveryBoyDashboard } from "./dashboards.jsx";
 import { api } from "./api.js";
 import { FOODS_FALLBACK, CATEGORIES_FALLBACK } from "./data.js";

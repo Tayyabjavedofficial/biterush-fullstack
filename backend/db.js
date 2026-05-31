@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS users (
   password TEXT NOT NULL,
   role TEXT DEFAULT 'customer',
   restaurant_id INTEGER,
+  phone TEXT,
+  address TEXT,
+  picture TEXT,
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS categories (
