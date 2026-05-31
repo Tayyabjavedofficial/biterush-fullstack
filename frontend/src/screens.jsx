@@ -4,11 +4,13 @@ import {
   Navigation, ArrowLeft, Plus, Minus, Check, ShoppingBag, Receipt, Heart,
   CreditCard, Wallet, MapPin as Pin, Settings, LogOut, ChevronRight, User,
   ChevronLeft, CheckCircle, Gift, Truck, Zap, TrendingUp, Sandwich, UtensilsCrossed, Cookie, CupSoda, Pizza,
+  MessageCircle, Eye, MapPinIcon, Phone, Share2,
 } from "lucide-react";
 import { ThemeToggle, HeroCarousel, FoodCard, Dish } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { useCart } from "./context/CartContext.jsx";
 import { api } from "./api.js";
+import { RESTAURANTS } from "./data.js";
 
 const DELIVERY_FEE = 2.99;
 
@@ -101,7 +103,7 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
 }
 
 /* ---------------------------------- Home ---------------------------------- */
-export function Home({ foods, categories, onOpen, theme, setTheme }) {
+export function Home({ foods, categories, onOpen, theme, setTheme, go }) {
   const [cat, setCat] = useState("All");
   const [query, setQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
@@ -224,10 +226,10 @@ export function Home({ foods, categories, onOpen, theme, setTheme }) {
         <h1>What would you like<br />to eat today?</h1>
       </div>
 
-      <div className="search glass">
+      <div className="search glass" onClick={() => go && go("search")} style={{ cursor: "pointer" }}>
         <Search size={19} color="var(--muted)" />
-        <input placeholder="Search for dishes or restaurants" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button className="filt" onClick={() => setShowFilter(!showFilter)} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, color: "white" }}>
+        <input placeholder="Search restaurants or dishes..." readOnly style={{ cursor: "pointer" }} />
+        <button className="filt" onClick={(e) => { e.stopPropagation(); setShowFilter(!showFilter); }} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, color: "white" }}>
           <Filter size={17} />
         </button>
       </div>
@@ -812,6 +814,168 @@ export function Profile({ go, theme, setTheme }) {
         <span className="lead"><LogOut size={19} /></span>
         Log out
       </div>
+    </div>
+  );
+}
+
+/* -------------------------------- Search -------------------------------- */
+export function Search({ go, theme, setTheme }) {
+  const [query, setQuery] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("All");
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [filteredRestaurants, setFilteredRestaurants] = useState(RESTAURANTS);
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+
+  const locations = ["All", "Downtown", "Midtown", "East Side", "West Plaza", "Arts District", "City Center"];
+
+  useEffect(() => {
+    let filtered = RESTAURANTS;
+
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      filtered = filtered.filter(r =>
+        r.name.toLowerCase().includes(q) ||
+        r.cuisine.toLowerCase().includes(q)
+      );
+    }
+
+    if (selectedLocation !== "All") {
+      filtered = filtered.filter(r => r.location === selectedLocation);
+    }
+
+    if (selectedRating > 0) {
+      filtered = filtered.filter(r => r.rating >= selectedRating);
+    }
+
+    setFilteredRestaurants(filtered);
+  }, [query, selectedLocation, selectedRating]);
+
+  return (
+    <div className="container">
+      <header className="header">
+        <button className="icon-btn" onClick={() => go("home")}><ArrowLeft size={20} /></button>
+        <h2 style={{ flex: 1, textAlign: "center" }}>Search Restaurants</h2>
+        <ThemeToggle theme={theme} setTheme={setTheme} />
+      </header>
+
+      <div className="search glass" style={{ marginTop: 18 }}>
+        <Search size={19} color="var(--muted)" />
+        <input
+          placeholder="Search restaurants or cuisines..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
+      <div className="search-filters" style={{ marginTop: 16, display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8 }}>
+        {locations.map(loc => (
+          <button
+            key={loc}
+            className={"chip" + (selectedLocation === loc ? " on" : "")}
+            onClick={() => setSelectedLocation(loc)}
+            style={{ flexShrink: 0 }}
+          >
+            <MapPin size={14} /> {loc}
+          </button>
+        ))}
+      </div>
+
+      <div className="rating-filter" style={{ marginTop: 14, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+        {[0, 4, 4.5, 4.7].map(rating => (
+          <button
+            key={rating}
+            className={"chip" + (selectedRating === rating ? " on" : "")}
+            onClick={() => setSelectedRating(rating)}
+            style={{ flexShrink: 0 }}
+          >
+            <Star size={13} /> {rating === 0 ? "All" : rating + "+"}
+          </button>
+        ))}
+      </div>
+
+      {selectedRestaurant ? (
+        <div className="restaurant-detail glass" style={{ marginTop: 20, padding: 20, borderRadius: 20 }}>
+          <button className="icon-btn" onClick={() => setSelectedRestaurant(null)} style={{ marginBottom: 10 }}>
+            <ArrowLeft size={18} />
+          </button>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>{selectedRestaurant.image}</div>
+          <h2 style={{ marginBottom: 4 }}>{selectedRestaurant.name}</h2>
+          <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 12 }}>{selectedRestaurant.cuisine}</div>
+
+          <div style={{ display: "flex", gap: 16, marginBottom: 16, fontSize: 13 }}>
+            <div><Star size={14} fill="var(--primary)" color="var(--primary)" /> {selectedRestaurant.rating} ({selectedRestaurant.reviews})</div>
+            <div><Clock size={14} /> {selectedRestaurant.time}</div>
+            <div><MapPin size={14} /> {selectedRestaurant.distance} km</div>
+          </div>
+
+          <div style={{ background: "var(--glass-2)", padding: 12, borderRadius: 12, marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>📍 {selectedRestaurant.location}</div>
+            <div style={{ height: 120, background: "var(--glass)", borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)" }}>
+              Map View (Location: {selectedRestaurant.lat}, {selectedRestaurant.lng})
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <h3 style={{ marginBottom: 12, fontFamily: "var(--font-display)", fontWeight: 800 }}>Customer Reviews</h3>
+            {selectedRestaurant.testimonials.map((testimonial, idx) => (
+              <div key={idx} className="glass" style={{ padding: 12, borderRadius: 12, marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--primary)", color: "var(--btn-text)", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 800 }}>
+                    {testimonial.name[0]}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{testimonial.name}</div>
+                    <div style={{ color: "var(--primary)", fontSize: 11 }}>⭐⭐⭐⭐⭐</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>{testimonial.text}</div>
+              </div>
+            ))}
+          </div>
+
+          <button className="cta" style={{ width: "100%", marginTop: 16 }}>
+            <Heart size={16} style={{ marginRight: 8 }} /> Order from {selectedRestaurant.name}
+          </button>
+        </div>
+      ) : (
+        <div className="search-results" style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+          {filteredRestaurants.length === 0 ? (
+            <div className="empty" style={{ textAlign: "center", padding: 40 }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+              <h3>No restaurants found</h3>
+              <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 6 }}>Try searching with different keywords</p>
+            </div>
+          ) : (
+            filteredRestaurants.map(restaurant => (
+              <div
+                key={restaurant.id}
+                className="glass"
+                style={{ padding: 14, borderRadius: 16, cursor: "pointer", transition: "all .2s ease" }}
+                onClick={() => setSelectedRestaurant(restaurant)}
+                onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-4px)"}
+                onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+              >
+                <div style={{ display: "flex", gap: 12 }}>
+                  <div style={{ fontSize: 48 }}>{restaurant.image}</div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, marginBottom: 4 }}>{restaurant.name}</h4>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{restaurant.cuisine}</div>
+                    <div style={{ display: "flex", gap: 12, fontSize: 12 }}>
+                      <span><Star size={12} fill="var(--primary)" color="var(--primary)" /> {restaurant.rating}</span>
+                      <span><Clock size={12} /> {restaurant.time}</span>
+                      <span><MapPin size={12} /> {restaurant.distance}km</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>{restaurant.reviews} reviews</div>
+                    <ChevronRight size={16} color="var(--primary)" />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

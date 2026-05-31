@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Backdrop, BottomNav } from "./components.jsx";
-import { Auth, Home, FoodDetail, Cart, Checkout, Orders, Profile } from "./screens.jsx";
+import { Auth, Home, FoodDetail, Cart, Checkout, Orders, Profile, Search } from "./screens.jsx";
 import { api } from "./api.js";
 import { FOODS_FALLBACK, CATEGORIES_FALLBACK } from "./data.js";
 
@@ -11,7 +11,7 @@ export default function App() {
   const [categories, setCategories] = useState(CATEGORIES_FALLBACK);
 
   const go = (screen, extra = {}) => { setNav({ screen, ...extra }); window.scrollTo({ top: 0 }); };
-  const onNav = (id) => go(id === "search" ? "home" : id);
+  const onNav = (id) => go(id);
 
   useEffect(() => {
     api.foods().then((d) => { if (Array.isArray(d) && d.length) setFoods(d); }).catch(() => {});
@@ -19,7 +19,7 @@ export default function App() {
   }, []);
 
   const selectedFood = nav.foodId != null ? foods.find((f) => f.id === nav.foodId) : null;
-  const showNav = ["home", "cart", "orders", "profile"].includes(nav.screen);
+  const showNav = ["home", "cart", "orders", "profile", "search"].includes(nav.screen);
 
   let screen;
   if (nav.screen === "auth") {
@@ -34,8 +34,10 @@ export default function App() {
     screen = <Orders go={go} theme={theme} setTheme={setTheme} />;
   } else if (nav.screen === "profile") {
     screen = <Profile go={go} theme={theme} setTheme={setTheme} />;
+  } else if (nav.screen === "search") {
+    screen = <Search go={go} theme={theme} setTheme={setTheme} />;
   } else {
-    screen = <Home foods={foods} categories={categories} onOpen={(f) => go("detail", { foodId: f.id })} theme={theme} setTheme={setTheme} />;
+    screen = <Home foods={foods} categories={categories} onOpen={(f) => go("detail", { foodId: f.id })} theme={theme} setTheme={setTheme} go={go} />;
   }
 
   return (
