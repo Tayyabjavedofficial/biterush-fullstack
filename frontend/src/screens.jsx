@@ -226,11 +226,16 @@ export function Home({ foods, categories, onOpen, theme, setTheme, go }) {
         <h1>What would you like<br />to eat today?</h1>
       </div>
 
-      <div className="search glass" onClick={() => go && go("search")} style={{ cursor: "pointer" }}>
-        <Search size={19} color="var(--muted)" />
-        <input placeholder="Search restaurants or dishes..." readOnly style={{ cursor: "pointer" }} />
-        <button className="filt" onClick={(e) => { e.stopPropagation(); setShowFilter(!showFilter); }} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, color: "white" }}>
-          <Filter size={17} />
+      <div style={{ display: "flex", gap: 10 }}>
+        <div className="search glass" style={{ flex: 1 }}>
+          <Search size={19} color="var(--muted)" />
+          <input placeholder="Search for dishes..." value={query} onChange={(e) => setQuery(e.target.value)} />
+          <button className="filt" onClick={() => setShowFilter(!showFilter)} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, color: "white" }}>
+            <Filter size={17} />
+          </button>
+        </div>
+        <button className="icon-btn" onClick={() => go && go("search")} style={{ background: "var(--glass)", border: "1px solid var(--border-soft)", borderRadius: 14, padding: "10px 14px" }}>
+          <MapPin size={18} title="Search restaurants" />
         </button>
       </div>
 
