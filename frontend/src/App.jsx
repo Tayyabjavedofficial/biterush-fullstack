@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { Backdrop, BottomNav } from "./components.jsx";
 import { Auth, Home, FoodDetail, Cart, Checkout, Orders, Profile, Search } from "./screens.jsx";
+import { AdminDashboard, OwnerDashboard, DeliveryBoyDashboard } from "./dashboards.jsx";
 import { api } from "./api.js";
 import { FOODS_FALLBACK, CATEGORIES_FALLBACK } from "./data.js";
+import { useAuth } from "./context/AuthContext.jsx";
 
 export default function App() {
+  const { user } = useAuth();
   const [theme, setTheme] = useState("dark");
   const [nav, setNav] = useState({ screen: "home" });
   const [foods, setFoods] = useState(FOODS_FALLBACK);
@@ -24,6 +27,12 @@ export default function App() {
   let screen;
   if (nav.screen === "auth") {
     screen = <Auth theme={theme} setTheme={setTheme} onBack={() => go("home")} onDone={() => go(nav.next || "home")} />;
+  } else if (nav.screen === "admin-dashboard") {
+    screen = <AdminDashboard go={go} theme={theme} setTheme={setTheme} />;
+  } else if (nav.screen === "owner-dashboard") {
+    screen = <OwnerDashboard go={go} theme={theme} setTheme={setTheme} />;
+  } else if (nav.screen === "delivery-dashboard") {
+    screen = <DeliveryBoyDashboard go={go} theme={theme} setTheme={setTheme} />;
   } else if (nav.screen === "detail" && selectedFood) {
     screen = <FoodDetail food={selectedFood} theme={theme} setTheme={setTheme} onBack={() => go("home")} />;
   } else if (nav.screen === "cart") {

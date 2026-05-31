@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
+  role TEXT DEFAULT 'customer',
+  restaurant_id INTEGER,
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS categories (
@@ -88,6 +90,24 @@ CREATE TABLE IF NOT EXISTS order_items (
   name TEXT,
   price REAL,
   qty INTEGER
+);
+CREATE TABLE IF NOT EXISTS restaurants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  owner_id INTEGER NOT NULL,
+  address TEXT,
+  phone TEXT,
+  rating REAL DEFAULT 4.5,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS deliveries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id INTEGER NOT NULL,
+  delivery_boy_id INTEGER,
+  status TEXT DEFAULT 'pending',
+  current_location TEXT,
+  estimated_time TEXT,
+  created_at TEXT NOT NULL
 );
 `);
 
