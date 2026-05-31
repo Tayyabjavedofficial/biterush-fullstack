@@ -800,53 +800,6 @@ export function Orders({ go, theme, setTheme }) {
   );
 }
 
-/* --------------------------------- Profile -------------------------------- */
-export function Profile({ go, theme, setTheme }) {
-  const { user, logout } = useAuth();
-
-  if (!user) {
-    return (
-      <div className="page">
-        <div className="page-head"><h1>Profile</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
-        <div className="empty"><div className="big">👤</div><h3>Welcome to BiteRush</h3><p>Sign in to manage your orders and account.</p><button className="cta inline" onClick={() => go("auth", { next: "profile" })}>Sign in</button></div>
-      </div>
-    );
-  }
-
-  const initial = (user.name || "U").trim().charAt(0).toUpperCase();
-  const items = [
-    { icon: Receipt, label: "My Orders", action: () => go("orders") },
-    { icon: Heart, label: "My Favorites" },
-    { icon: CreditCard, label: "Payment Methods" },
-    { icon: Pin, label: "Addresses" },
-    { icon: Settings, label: "Settings" },
-  ];
-
-  return (
-    <div className="page">
-      <div className="page-head"><h1>Profile</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
-      <div className="profile-head">
-        <div className="avatar">{initial}</div>
-        <h2>{user.name}</h2>
-        <div className="em2">{user.email}</div>
-      </div>
-      {items.map((it) => {
-        const I = it.icon;
-        return (
-          <div className="menu-item glass" key={it.label} onClick={it.action || (() => {})}>
-            <span className="lead"><I size={19} /></span>
-            {it.label}
-            <ChevronRight className="chev" size={18} />
-          </div>
-        );
-      })}
-      <div className="menu-item glass danger" onClick={() => { logout(); go("home"); }}>
-        <span className="lead"><LogOut size={19} /></span>
-        Log out
-      </div>
-    </div>
-  );
-}
 
 /* -------------------------------- Search -------------------------------- */
 export function Search({ go, theme, setTheme }) {
