@@ -107,25 +107,39 @@ export function ProfileScreen({ go, theme, setTheme }) {
 
   if (!user || !token) {
     return (
-      <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-screen h-screen fixed inset-0 flex flex-col items-center justify-center`}>
-        <div className="text-center px-8 max-w-md">
-          <div className="text-9xl mb-8 animate-bounce">👤</div>
-          <h2 className="text-4xl font-bold mb-4">Sign In Required</h2>
-          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} text-xl mb-10 leading-relaxed`}>
-            Please sign in to view and manage your profile
-          </p>
-          <button
-            onClick={() => go("auth", { next: "profile" })}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-xl text-xl transition shadow-lg hover:shadow-xl"
-          >
-            🔐 Sign In Now
+      <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-full min-h-screen pb-24`}>
+        {/* Header */}
+        <div className={`${theme === "dark" ? "bg-gray-800" : "bg-white"} sticky top-0 z-40 flex items-center justify-between p-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+          <button onClick={() => go("home")} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition">
+            <ArrowLeft size={24} />
           </button>
-          <button
-            onClick={() => go("home")}
-            className={`w-full mt-4 ${theme === "dark" ? "bg-gray-800 hover:bg-gray-700" : "bg-gray-300 hover:bg-gray-400"} font-semibold py-3 px-8 rounded-xl text-lg transition`}
-          >
-            Back to Home
+          <h1 className="text-xl font-bold">My Profile</h1>
+          <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition text-xl">
+            {theme === "dark" ? "☀️" : "🌙"}
           </button>
+        </div>
+
+        {/* Sign In Prompt - Centered in Content Area */}
+        <div className="w-full h-screen flex items-center justify-center">
+          <div className="text-center px-8 max-w-md">
+            <div className="text-9xl mb-8 animate-bounce">👤</div>
+            <h2 className="text-4xl font-bold mb-4">Sign In Required</h2>
+            <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} text-xl mb-10 leading-relaxed`}>
+              Please sign in to view and manage your profile
+            </p>
+            <button
+              onClick={() => go("auth", { next: "profile" })}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-xl text-xl transition shadow-lg hover:shadow-xl"
+            >
+              🔐 Sign In Now
+            </button>
+            <button
+              onClick={() => go("home")}
+              className={`w-full mt-4 ${theme === "dark" ? "bg-gray-800 hover:bg-gray-700" : "bg-gray-300 hover:bg-gray-400"} font-semibold py-3 px-8 rounded-xl text-lg transition`}
+            >
+              ← Back to Home
+            </button>
+          </div>
         </div>
       </div>
     );
