@@ -64,12 +64,12 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
 
   return (
     <div className="auth-wrap">
-      <div className="auth-card glass">
-        <div className="auth-card-header">
-          <button className="icon-btn" onClick={onBack}><ArrowLeft size={19} /></button>
-          <ThemeToggle theme={theme} setTheme={setTheme} />
-        </div>
+      <header className="header" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <button className="icon-btn" onClick={onBack} style={{ cursor: "pointer" }}><ArrowLeft size={19} /></button>
+        <ThemeToggle theme={theme} setTheme={setTheme} />
+      </header>
 
+      <div className="auth-card glass">
         <div className="brand">Bite<span>Rush</span></div>
         <div className="sub">Crave it. Tap it. Get it.</div>
 

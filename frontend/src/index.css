@@ -330,6 +330,8 @@ body { margin: 0; background: #0F1117; }
 
 /* ---------- auth ---------- */
 .auth-wrap{min-height:100vh;display:grid;place-items:center;padding:24px;position:relative;z-index:1;}
+.auth-wrap .header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:20px 24px;background:transparent;}
+.auth-wrap .header .icon-btn{cursor:pointer;}
 .auth-card{width:100%;max-width:404px;padding:24px 26px 26px;border-radius:30px;}
 .auth-card .brand{text-align:center;font-family:var(--font-display);font-size:30px;font-weight:800;margin-top:8px;}
 .auth-card .brand span{color:var(--accent-ink);}
