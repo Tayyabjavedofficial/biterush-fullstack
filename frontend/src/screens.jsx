@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Search, Bell, MapPin, ChevronDown, Filter, Flame, Star, Clock,
+  Search as SearchIcon, Bell, MapPin, ChevronDown, Filter, Flame, Star, Clock,
   Navigation, ArrowLeft, Plus, Minus, Check, ShoppingBag, Receipt, Heart,
   CreditCard, Wallet, MapPin as Pin, Settings, LogOut, ChevronRight, User,
   ChevronLeft, CheckCircle, Gift, Truck, Zap, TrendingUp, Sandwich, UtensilsCrossed, Cookie, CupSoda, Pizza,
@@ -228,7 +228,7 @@ export function Home({ foods, categories, onOpen, theme, setTheme, go }) {
 
       <div style={{ display: "flex", gap: 10 }}>
         <div className="search glass" style={{ flex: 1 }}>
-          <Search size={19} color="var(--muted)" />
+          <SearchIcon size={19} color="var(--muted)" />
           <input placeholder="Search for dishes..." value={query} onChange={(e) => setQuery(e.target.value)} />
           <button className="filt" onClick={() => setShowFilter(!showFilter)} style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, color: "white" }}>
             <Filter size={17} />
@@ -864,7 +864,7 @@ export function Search({ go, theme, setTheme }) {
       </header>
 
       <div className="search glass" style={{ marginTop: 18 }}>
-        <Search size={19} color="var(--muted)" />
+        <SearchIcon size={19} color="var(--muted)" />
         <input
           placeholder="Search restaurants or cuisines..."
           value={query}
