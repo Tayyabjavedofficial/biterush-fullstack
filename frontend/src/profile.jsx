@@ -107,18 +107,24 @@ export function ProfileScreen({ go, theme, setTheme }) {
 
   if (!user || !token) {
     return (
-      <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-full min-h-screen flex flex-col items-center justify-center pb-20`}>
-        <div className="text-center px-6">
-          <div className="text-8xl mb-6">👤</div>
-          <h2 className="text-3xl font-bold mb-3">Sign In Required</h2>
-          <p className={`${theme === "dark" ? "text-gray-300" : "text-gray-600"} text-lg mb-8`}>
+      <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-screen h-screen fixed inset-0 flex flex-col items-center justify-center`}>
+        <div className="text-center px-8 max-w-md">
+          <div className="text-9xl mb-8 animate-bounce">👤</div>
+          <h2 className="text-4xl font-bold mb-4">Sign In Required</h2>
+          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} text-xl mb-10 leading-relaxed`}>
             Please sign in to view and manage your profile
           </p>
           <button
             onClick={() => go("auth", { next: "profile" })}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-lg text-lg transition"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-xl text-xl transition shadow-lg hover:shadow-xl"
           >
-            Sign In
+            🔐 Sign In Now
+          </button>
+          <button
+            onClick={() => go("home")}
+            className={`w-full mt-4 ${theme === "dark" ? "bg-gray-800 hover:bg-gray-700" : "bg-gray-300 hover:bg-gray-400"} font-semibold py-3 px-8 rounded-xl text-lg transition`}
+          >
+            Back to Home
           </button>
         </div>
       </div>
