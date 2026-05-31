@@ -97,52 +97,52 @@ export function ProfileScreen({ go, theme, setTheme }) {
 
   if (loading)
     return (
-      <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} min-h-screen flex items-center justify-center`}>
+      <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-full min-h-screen flex items-center justify-center`}>
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-          <p className="mt-4">Loading profile...</p>
+          <p className="mt-4 text-lg">Loading profile...</p>
         </div>
       </div>
     );
 
   return (
-    <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} min-h-screen pb-20`}>
+    <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-full min-h-screen pb-24`}>
       {/* Header */}
       <div className={`${theme === "dark" ? "bg-gray-800" : "bg-white"} sticky top-0 z-40 flex items-center justify-between p-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
         <button onClick={() => go("home")} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition">
           <ArrowLeft size={24} />
         </button>
         <h1 className="text-xl font-bold">My Profile</h1>
-        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition">
+        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition text-xl">
           {theme === "dark" ? "☀️" : "🌙"}
         </button>
       </div>
 
-      <div className="max-w-2xl mx-auto p-4 space-y-6">
-        {/* Profile Picture Section */}
-        <div className="text-center">
-          <div className="relative inline-block">
-            <div className={`w-32 h-32 rounded-full flex items-center justify-center ${theme === "dark" ? "bg-gray-800" : "bg-gray-200"} overflow-hidden border-4 border-orange-500`}>
+      <div className="w-full px-4 py-6">
+        {/* Profile Picture Section - Centered */}
+        <div className="flex flex-col items-center justify-center mb-8">
+          <div className="relative">
+            <div className={`w-40 h-40 rounded-full flex items-center justify-center ${theme === "dark" ? "bg-gray-800" : "bg-gray-200"} overflow-hidden border-4 border-orange-500 flex-shrink-0`}>
               {formData.picture ? (
                 <img src={formData.picture} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <div className="text-6xl">👤</div>
+                <div className="text-7xl">👤</div>
               )}
             </div>
             {editing && (
-              <label className="absolute bottom-0 right-0 bg-orange-500 text-white p-3 rounded-full cursor-pointer hover:bg-orange-600 transition">
-                <Camera size={20} />
+              <label className="absolute bottom-0 right-0 bg-orange-500 text-white p-3 rounded-full cursor-pointer hover:bg-orange-600 transition shadow-lg">
+                <Camera size={24} />
                 <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
               </label>
             )}
           </div>
-          <h2 className="text-2xl font-bold mt-4">{formData.name}</h2>
-          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{formData.email}</p>
+          <h2 className="text-3xl font-bold mt-6 text-center">{formData.name}</h2>
+          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} text-lg mt-1 text-center`}>{formData.email}</p>
         </div>
 
-        {/* Role Badge */}
-        <div className="flex justify-center">
-          <span className={`px-4 py-2 rounded-full text-white font-semibold ${
+        {/* Role Badge - Centered */}
+        <div className="flex justify-center mb-8">
+          <span className={`px-6 py-2 rounded-full text-white font-bold text-lg ${
             formData.role === "admin" ? "bg-red-500" :
             formData.role === "delivery_rider" ? "bg-blue-500" :
             "bg-green-500"
@@ -153,111 +153,115 @@ export function ProfileScreen({ go, theme, setTheme }) {
           </span>
         </div>
 
-        {/* Profile Form */}
-        <div className={`${theme === "dark" ? "bg-gray-800" : "bg-white"} rounded-lg p-6 space-y-4`}>
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              disabled={!editing}
-              className={`w-full p-3 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-50 border-gray-300"
-              } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition`}
-            />
-          </div>
+        {/* Profile Form - Full Width but organized */}
+        <div className={`${theme === "dark" ? "bg-gray-800" : "bg-white"} rounded-xl p-6 mb-6 shadow-lg`}>
+          <h3 className="text-xl font-bold mb-6">Personal Information</h3>
 
-          {/* Email (Read-only) */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              disabled
-              className={`w-full p-3 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-gray-400"
-                  : "bg-gray-100 border-gray-300 text-gray-500"
-              } cursor-not-allowed`}
-            />
-          </div>
+          <div className="grid grid-cols-1 gap-6">
+            {/* Name */}
+            <div>
+              <label className="block text-sm font-semibold mb-3">Full Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                disabled={!editing}
+                className={`w-full p-4 rounded-lg border text-base ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-50 border-gray-300"
+                } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition`}
+              />
+            </div>
 
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Phone</label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              disabled={!editing}
-              placeholder="Enter phone number"
-              className={`w-full p-3 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-50 border-gray-300"
-              } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition`}
-            />
-          </div>
+            {/* Email (Read-only) */}
+            <div>
+              <label className="block text-sm font-semibold mb-3">Email Address</label>
+              <input
+                type="email"
+                value={formData.email}
+                disabled
+                className={`w-full p-4 rounded-lg border text-base ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-400"
+                    : "bg-gray-100 border-gray-300 text-gray-500"
+                } cursor-not-allowed`}
+              />
+            </div>
 
-          {/* Address */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Address</label>
-            <textarea
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              disabled={!editing}
-              placeholder="Enter your address"
-              rows="3"
-              className={`w-full p-3 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-50 border-gray-300"
-              } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition resize-none`}
-            />
-          </div>
+            {/* Phone */}
+            <div>
+              <label className="block text-sm font-semibold mb-3">Phone Number</label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                disabled={!editing}
+                placeholder="Enter phone number"
+                className={`w-full p-4 rounded-lg border text-base ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+                    : "bg-gray-50 border-gray-300 placeholder-gray-400"
+                } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition`}
+              />
+            </div>
 
-          {/* Role Selection */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">User Role</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              disabled={!editing}
-              className={`w-full p-3 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-50 border-gray-300"
-              } ${editing ? "cursor-pointer" : "cursor-not-allowed opacity-60"} transition`}
-            >
-              <option value="customer">👤 Customer</option>
-              <option value="delivery_rider">🚴 Delivery Rider</option>
-              <option value="admin">👨‍💼 Admin</option>
-            </select>
+            {/* Address */}
+            <div>
+              <label className="block text-sm font-semibold mb-3">Address</label>
+              <textarea
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                disabled={!editing}
+                placeholder="Enter your address"
+                rows="4"
+                className={`w-full p-4 rounded-lg border text-base ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+                    : "bg-gray-50 border-gray-300 placeholder-gray-400"
+                } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition resize-none`}
+              />
+            </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-semibold mb-3">User Role</label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                disabled={!editing}
+                className={`w-full p-4 rounded-lg border text-base ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-50 border-gray-300"
+                } ${editing ? "cursor-pointer" : "cursor-not-allowed opacity-60"} transition`}
+              >
+                <option value="customer">👤 Customer - Order food</option>
+                <option value="delivery_rider">🚴 Delivery Rider - Deliver orders</option>
+                <option value="admin">👨‍💼 Admin - Manage platform</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="space-y-3">
+        <div className="space-y-3 mb-6">
           {!editing ? (
             <button
               onClick={() => setEditing(true)}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-lg"
             >
               ✏️ Edit Profile
             </button>
           ) : (
-            <div className="flex gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-base"
               >
                 <Save size={20} />
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? "Saving..." : "Save"}
               </button>
               <button
                 onClick={() => {
@@ -271,7 +275,7 @@ export function ProfileScreen({ go, theme, setTheme }) {
                     picture: profile.picture || "",
                   });
                 }}
-                className={`flex-1 ${theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-300 hover:bg-gray-400"} font-semibold py-3 rounded-lg transition`}
+                className={`${theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-300 hover:bg-gray-400"} text-black font-bold py-4 rounded-lg transition text-base`}
               >
                 Cancel
               </button>
@@ -280,7 +284,7 @@ export function ProfileScreen({ go, theme, setTheme }) {
 
           <button
             onClick={handleLogout}
-            className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+            className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-lg"
           >
             <LogOut size={20} />
             Sign Out
@@ -288,13 +292,16 @@ export function ProfileScreen({ go, theme, setTheme }) {
         </div>
 
         {/* Account Info */}
-        <div className={`${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} rounded-lg p-4`}>
-          <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            <strong>Account ID:</strong> {profile?.id}
-          </p>
-          <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            <strong>Member since:</strong> {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"}
-          </p>
+        <div className={`${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} rounded-lg p-6 mb-4`}>
+          <h4 className="font-bold mb-4">Account Information</h4>
+          <div className="space-y-3">
+            <p className={`text-base ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              <strong>Account ID:</strong> #{profile?.id}
+            </p>
+            <p className={`text-base ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              <strong>Member since:</strong> {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"}
+            </p>
+          </div>
         </div>
       </div>
     </div>
