@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, Save, LogOut, UserPlus, LogIn, Sparkles } from "lucide-react";
+import { ArrowLeft, Camera, Save, LogOut, UserPlus, LogIn, Sparkles, LayoutDashboard } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import { ThemeToggle } from "./components.jsx";
 
@@ -275,23 +275,24 @@ export function ProfileScreen({ go, theme, setTheme }) {
               />
             </div>
 
-            {/* Role Selection */}
+            {/* Role (read-only — managed by admins) */}
             <div>
               <label className="block text-sm font-semibold mb-3">User Role</label>
               <select
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                disabled={!editing}
+                disabled
                 className={`w-full p-4 rounded-lg border text-base ${
                   theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-gray-50 border-gray-300"
-                } ${editing ? "cursor-pointer" : "cursor-not-allowed opacity-60"} transition`}
+                    ? "bg-gray-700 border-gray-600 text-gray-400"
+                    : "bg-gray-100 border-gray-300 text-gray-500"
+                } cursor-not-allowed`}
               >
                 <option value="customer">👤 Customer - Order food</option>
+                <option value="owner">🏪 Restaurant Owner - Manage a menu</option>
                 <option value="delivery_rider">🚴 Delivery Rider - Deliver orders</option>
                 <option value="admin">👨‍💼 Admin - Manage platform</option>
               </select>
+              <p className="text-xs mt-2 opacity-60">Your role is managed by an administrator.</p>
             </div>
           </div>
         </div>
@@ -332,6 +333,20 @@ export function ProfileScreen({ go, theme, setTheme }) {
                 Cancel
               </button>
             </div>
+          )}
+
+          {formData.role !== "customer" && (
+            <button
+              onClick={() => go(
+                formData.role === "owner" ? "owner-dashboard" :
+                formData.role === "admin" ? "admin-dashboard" :
+                "delivery-dashboard"
+              )}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-lg"
+            >
+              <LayoutDashboard size={20} />
+              Go to Dashboard
+            </button>
           )}
 
           <button

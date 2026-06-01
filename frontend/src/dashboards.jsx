@@ -1,83 +1,180 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, TrendingUp, Users, DollarSign, Store, Truck, Clock, MapPin, CheckCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package } from "lucide-react";
 import { ThemeToggle } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
+import { api } from "./api.js";
+
+/* shared bits ------------------------------------------------------------- */
+function DashHead({ title, go, theme, setTheme }) {
+  return (
+    <div className="page-head">
+      <button className="icon-btn" onClick={() => go("home")}><ArrowLeft size={19} /></button>
+      <h1>{title}</h1>
+      <ThemeToggle theme={theme} setTheme={setTheme} />
+    </div>
+  );
+}
+
+function SignInGate({ title, emoji, msg, go, theme, setTheme }) {
+  return (
+    <div className="page">
+      <DashHead title={title} go={go} theme={theme} setTheme={setTheme} />
+      <div className="empty">
+        <div className="big">{emoji}</div>
+        <h3>Sign in required</h3>
+        <p>{msg}</p>
+        <button className="cta inline" onClick={() => go("auth", { next: "profile" })}>Sign in</button>
+      </div>
+    </div>
+  );
+}
+
+const statCard = (label, value) => (
+  <div className="glass" style={{ padding: 16, borderRadius: 16, textAlign: "center" }}>
+    <div style={{ fontSize: 12, color: "var(--muted)" }}>{label}</div>
+    <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4, fontFamily: "var(--font-display)" }}>{value}</div>
+  </div>
+);
+
+const ORDER_LABELS = {
+  PLACED: "Placed", PREPARING: "Preparing", READY: "Ready",
+  ON_THE_WAY: "On the way", DELIVERED: "Delivered", CANCELLED: "Cancelled",
+};
+const statusPill = (label, active) => (
+  <span style={{
+    padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+    background: active ? "var(--primary)" : "var(--glass-2)",
+    color: active ? "var(--btn-text)" : "var(--muted)",
+    border: "1px solid var(--border-soft)",
+  }}>{label}</span>
+);
+
+const SignOutRow = ({ logout, go }) => (
+  <div style={{ marginTop: 22 }}>
+    <button className="cta" style={{ width: "100%" }}
+      onClick={() => { logout(); go("home"); }}>Sign Out</button>
+  </div>
+);
 
 /* -------------------------------- Admin Dashboard -------------------------------- */
 export function AdminDashboard({ go, theme, setTheme }) {
   const { user, logout } = useAuth();
+  const [tab, setTab] = useState("orders");
   const [stats, setStats] = useState({ totalOrders: 0, totalUsers: 0, totalRevenue: 0, totalRestaurants: 0 });
   const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [err, setErr] = useState("");
+  const [newRest, setNewRest] = useState({ name: "", address: "" });
+  const [newCat, setNewCat] = useState({ name: "", emoji: "" });
 
-  useEffect(() => {
-    if (!user) return;
-    setStats({
-      totalOrders: 156,
-      totalUsers: 1200,
-      totalRevenue: 24580,
-      totalRestaurants: 45,
-    });
-    setOrders([
-      { id: 1, user: "John Doe", total: 45.99, status: "Delivered", date: "2025-05-30" },
-      { id: 2, user: "Jane Smith", total: 32.50, status: "Processing", date: "2025-05-31" },
-      { id: 3, user: "Mike Wilson", total: 58.75, status: "Out for Delivery", date: "2025-05-31" },
-    ]);
-  }, [user]);
+  const load = async () => {
+    try {
+      const [s, o, u, r, c] = await Promise.all([
+        api.adminStats(), api.allOrders(), api.adminUsers(), api.restaurants(), api.categories(),
+      ]);
+      setStats(s); setOrders(o); setUsers(u); setRestaurants(r); setCategories(c);
+    } catch (e) { setErr(e.message); }
+  };
+  useEffect(() => { if (user) load(); }, [user]);
 
-  if (!user) {
-    return (
-      <div className="page">
-        <div className="page-head"><h1>Admin Dashboard</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
-        <div className="empty"><div className="big">🔐</div><h3>Sign in required</h3><p>Only admins can access this dashboard.</p><button className="cta inline" onClick={() => go("auth")}>Sign in</button></div>
-      </div>
-    );
-  }
+  if (!user) return <SignInGate title="Admin Dashboard" emoji="🔐" msg="Only admins can access this dashboard." go={go} theme={theme} setTheme={setTheme} />;
+
+  const setRole = async (id, role) => { try { await api.updateUser(id, { role }); load(); } catch (e) { setErr(e.message); } };
+  const delUser = async (id) => { try { await api.deleteUser(id); load(); } catch (e) { setErr(e.message); } };
+  const setOrderStatus = async (id, status) => { try { await api.updateOrderStatus(id, status); load(); } catch (e) { setErr(e.message); } };
+  const addRest = async () => { if (!newRest.name) return; try { await api.createRestaurant(newRest); setNewRest({ name: "", address: "" }); load(); } catch (e) { setErr(e.message); } };
+  const delRest = async (id) => { try { await api.deleteRestaurant(id); load(); } catch (e) { setErr(e.message); } };
+
+  const TABS = [["orders", "Orders"], ["users", "Users"], ["restaurants", "Restaurants"], ["categories", "Categories"]];
 
   return (
     <div className="page">
-      <div className="page-head"><h1>Admin Dashboard</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
+      <DashHead title="Admin Dashboard" go={go} theme={theme} setTheme={setTheme} />
+      {err && <div className="err" style={{ marginBottom: 14 }}>{err}</div>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-        <div className="glass" style={{ padding: 16, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Total Orders</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>{stats.totalOrders}</div>
-        </div>
-        <div className="glass" style={{ padding: 16, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Total Users</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>{stats.totalUsers}</div>
-        </div>
-        <div className="glass" style={{ padding: 16, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>💰</div>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Total Revenue</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>${stats.totalRevenue}</div>
-        </div>
-        <div className="glass" style={{ padding: 16, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>🏪</div>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Restaurants</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>{stats.totalRestaurants}</div>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
+        {statCard("Total Orders", stats.totalOrders)}
+        {statCard("Total Users", stats.totalUsers)}
+        {statCard("Revenue", `$${stats.totalRevenue}`)}
+        {statCard("Restaurants", stats.totalRestaurants)}
       </div>
 
-      <h3 style={{ marginBottom: 12 }}>Recent Orders</h3>
-      {orders.map(order => (
-        <div key={order.id} className="glass" style={{ padding: 12, borderRadius: 12, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontWeight: 700 }}>Order #{order.id}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>{order.user}</div>
+      <div className="seg" style={{ marginBottom: 18 }}>
+        {TABS.map(([id, label]) => (
+          <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>{label}</button>
+        ))}
+      </div>
+
+      {tab === "orders" && (orders.length === 0
+        ? <p style={{ color: "var(--muted)", fontSize: 13 }}>No orders yet.</p>
+        : orders.map((o) => (
+          <div key={o.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <strong>Order #{o.id.slice(-5)}</strong>
+              <span style={{ fontWeight: 700 }}>${o.total}</span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>{o.items?.length || 0} item(s) · {o.payment}</div>
+            <select className="dash-select" value={o.status} onChange={(e) => setOrderStatus(o.id, e.target.value)}>
+              {Object.entries(ORDER_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontWeight: 700 }}>${order.total}</div>
-            <div style={{ fontSize: 12, color: order.status === "Delivered" ? "var(--primary)" : "var(--muted)" }}>{order.status}</div>
+        )))}
+
+      {tab === "users" && users.map((u) => (
+        <div key={u.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</div>
           </div>
+          <select className="dash-select" style={{ width: 140 }} value={u.role} onChange={(e) => setRole(u.id, e.target.value)}>
+            <option value="customer">Customer</option>
+            <option value="owner">Owner</option>
+            <option value="delivery_rider">Rider</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button className="icon-btn" title="Delete" onClick={() => delUser(u.id)}><Trash2 size={16} /></button>
         </div>
       ))}
 
-      <div style={{ marginTop: 20 }}>
-        <button className="cta" style={{ width: "100%", marginBottom: 10 }} onClick={() => go("home")}>Back to Home</button>
-        <button className="cta" style={{ width: "100%", background: "var(--glass)" }} onClick={() => { logout(); go("home"); }}>Sign Out</button>
-      </div>
+      {tab === "restaurants" && (
+        <>
+          <div className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 14 }}>
+            <div className="field" style={{ marginBottom: 8 }}><label>New restaurant</label>
+              <input value={newRest.name} onChange={(e) => setNewRest({ ...newRest, name: e.target.value })} placeholder="Name" /></div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <input value={newRest.address} onChange={(e) => setNewRest({ ...newRest, address: e.target.value })} placeholder="Address" /></div>
+            <button className="cta" onClick={addRest}><Plus size={16} /> Add restaurant</button>
+          </div>
+          {restaurants.map((r) => (
+            <div key={r.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div><div style={{ fontWeight: 700 }}>{r.name}</div><div style={{ fontSize: 12, color: "var(--muted)" }}>{r.address || "—"} · ⭐ {r.rating}</div></div>
+              <button className="icon-btn" onClick={() => delRest(r.id)}><Trash2 size={16} /></button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {tab === "categories" && (
+        <>
+          <div className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input className="dash-input" value={newCat.emoji} onChange={(e) => setNewCat({ ...newCat, emoji: e.target.value })} placeholder="🍔" style={{ width: 64, textAlign: "center" }} />
+              <input className="dash-input" value={newCat.name} onChange={(e) => setNewCat({ ...newCat, name: e.target.value })} placeholder="Category name" style={{ flex: 1 }} />
+            </div>
+            <button className="cta" onClick={async () => { if (!newCat.name) return; try { await api.createCategory(newCat); setNewCat({ name: "", emoji: "" }); load(); } catch (e) { setErr(e.message); } }}><Plus size={16} /> Add category</button>
+          </div>
+          {categories.map((c) => (
+            <div key={c.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 700 }}>{c.emoji} {c.name}</div>
+              <button className="icon-btn" onClick={async () => { try { await api.deleteCategory(c.id); load(); } catch (e) { setErr(e.message); } }}><Trash2 size={16} /></button>
+            </div>
+          ))}
+        </>
+      )}
+
+      <SignOutRow logout={logout} go={go} />
     </div>
   );
 }
@@ -85,124 +182,154 @@ export function AdminDashboard({ go, theme, setTheme }) {
 /* -------------------------------- Owner Dashboard -------------------------------- */
 export function OwnerDashboard({ go, theme, setTheme }) {
   const { user, logout } = useAuth();
-  const [restaurant, setRestaurant] = useState({ name: "My Restaurant", orders: 0, revenue: 0 });
   const [orders, setOrders] = useState([]);
+  const [foods, setFoods] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [err, setErr] = useState("");
+  const [form, setForm] = useState({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" });
 
-  useEffect(() => {
-    if (!user) return;
-    setRestaurant({ name: "Burger Flame", orders: 45, revenue: 2850 });
-    setOrders([
-      { id: 1, customer: "John", items: 3, total: 45.99, status: "Ready" },
-      { id: 2, customer: "Jane", items: 2, total: 32.50, status: "Preparing" },
-    ]);
-  }, [user]);
+  const load = async () => {
+    try {
+      const [o, allFoods, c] = await Promise.all([api.restaurantOrders(), api.foods(), api.categories()]);
+      setOrders(o);
+      setFoods(allFoods.filter((f) => String(f.owner_id) === String(user.id)));
+      setCategories(c);
+    } catch (e) { setErr(e.message); }
+  };
+  useEffect(() => { if (user) load(); }, [user]);
 
-  if (!user) {
-    return (
-      <div className="page">
-        <div className="page-head"><h1>Restaurant Dashboard</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
-        <div className="empty"><div className="big">🏪</div><h3>Sign in required</h3><p>Only restaurant owners can access this.</p><button className="cta inline" onClick={() => go("auth")}>Sign in</button></div>
-      </div>
-    );
-  }
+  if (!user) return <SignInGate title="Restaurant Dashboard" emoji="🏪" msg="Only restaurant owners can access this." go={go} theme={theme} setTheme={setTheme} />;
+
+  const revenue = Math.round(orders.filter((o) => o.status !== "CANCELLED").reduce((s, o) => s + o.total, 0) * 100) / 100;
+  const next = { PLACED: "PREPARING", PREPARING: "READY" };
+  const advance = async (o) => { const n = next[o.status]; if (!n) return; try { await api.updateOrderStatus(o.id, n); load(); } catch (e) { setErr(e.message); } };
+  const addFood = async () => {
+    if (!form.name || form.price === "") { setErr("Name and price are required"); return; }
+    try { await api.createFood({ ...form, price: Number(form.price) }); setForm({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" }); setErr(""); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  const delFood = async (id) => { try { await api.deleteFood(id); load(); } catch (e) { setErr(e.message); } };
 
   return (
     <div className="page">
-      <div className="page-head"><h1>{restaurant.name}</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
+      <DashHead title="Restaurant Dashboard" go={go} theme={theme} setTheme={setTheme} />
+      {err && <div className="err" style={{ marginBottom: 14 }}>{err}</div>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-        <div className="glass" style={{ padding: 16, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Today's Orders</div>
-          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{restaurant.orders}</div>
-        </div>
-        <div className="glass" style={{ padding: 16, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Revenue</div>
-          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>${restaurant.revenue}</div>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
+        {statCard("Orders", orders.length)}
+        {statCard("Revenue", `$${revenue}`)}
       </div>
 
       <h3 style={{ marginBottom: 12 }}>Active Orders</h3>
-      {orders.map(order => (
-        <div key={order.id} className="glass" style={{ padding: 12, borderRadius: 12, marginBottom: 10 }}>
+      {orders.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 16 }}>No orders yet.</p>}
+      {orders.map((o) => (
+        <div key={o.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <div><strong>Order #{order.id}</strong> - {order.customer}</div>
-            <span style={{ padding: "4px 8px", borderRadius: 6, background: order.status === "Ready" ? "var(--primary)" : "var(--accent-ink)", fontSize: 11, color: "white" }}>{order.status}</span>
+            <strong>Order #{o.id.slice(-5)}</strong>
+            {statusPill(ORDER_LABELS[o.status], true)}
           </div>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>{order.items} items · ${order.total}</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>{o.items?.length || 0} item(s) · ${o.total}</div>
+          {next[o.status]
+            ? <button className="cta" onClick={() => advance(o)}>{o.status === "PLACED" ? "Start preparing" : "Mark ready"}</button>
+            : <span style={{ fontSize: 12, color: "var(--muted)" }}>{o.status === "READY" ? "Awaiting rider pickup" : ORDER_LABELS[o.status]}</span>}
         </div>
       ))}
 
-      <div style={{ marginTop: 20 }}>
-        <button className="cta" style={{ width: "100%", marginBottom: 10 }} onClick={() => go("home")}>Back to Home</button>
-        <button className="cta" style={{ width: "100%", background: "var(--glass)" }} onClick={() => { logout(); go("home"); }}>Sign Out</button>
+      <h3 style={{ margin: "22px 0 12px" }}>Add Food Item</h3>
+      <div className="glass" style={{ padding: 16, borderRadius: 16, marginBottom: 18 }}>
+        <div className="field" style={{ marginBottom: 10 }}><label>Name</label>
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Double Cheeseburger" /></div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div className="field" style={{ flex: 1, marginBottom: 10 }}><label>Category</label>
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              <option value="">Select…</option>
+              {categories.map((c) => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
+            </select></div>
+          <div className="field" style={{ width: 110, marginBottom: 10 }}><label>Price ($)</label>
+            <input type="number" step="0.1" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="9.99" /></div>
+        </div>
+        <div className="field" style={{ marginBottom: 10 }}><label>Description</label>
+          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Short description" /></div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div className="field" style={{ width: 80, marginBottom: 12 }}><label>Emoji</label>
+            <input value={form.emoji} onChange={(e) => setForm({ ...form, emoji: e.target.value })} style={{ textAlign: "center" }} /></div>
+          <div className="field" style={{ flex: 1, marginBottom: 12 }}><label>Image URL (optional)</label>
+            <input value={form.img} onChange={(e) => setForm({ ...form, img: e.target.value })} placeholder="https://…" /></div>
+        </div>
+        <button className="cta" onClick={addFood}><Plus size={16} /> Add to menu</button>
       </div>
+
+      <h3 style={{ marginBottom: 12 }}>My Menu ({foods.length})</h3>
+      {foods.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>No items yet — add your first dish above.</p>}
+      {foods.map((f) => (
+        <div key={f.id} className="glass" style={{ padding: 12, borderRadius: 16, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 26 }}>{f.emoji}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.name}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>{f.category || "—"} · ${f.price}</div>
+          </div>
+          <button className="icon-btn" onClick={() => delFood(f.id)}><Trash2 size={16} /></button>
+        </div>
+      ))}
+
+      <SignOutRow logout={logout} go={go} />
     </div>
   );
 }
 
-/* -------------------------------- Delivery Boy Dashboard -------------------------------- */
+/* -------------------------------- Delivery Rider Dashboard -------------------------------- */
 export function DeliveryBoyDashboard({ go, theme, setTheme }) {
   const { user, logout } = useAuth();
   const [deliveries, setDeliveries] = useState([]);
-  const [stats, setStats] = useState({ completed: 0, inProgress: 0, available: 0 });
+  const [err, setErr] = useState("");
 
-  useEffect(() => {
-    if (!user) return;
-    setStats({ completed: 12, inProgress: 2, available: 8 });
-    setDeliveries([
-      { id: 1, customer: "John Doe", address: "123 Main St", status: "Delivering", distance: "2.1 km", eta: "10 min" },
-      { id: 2, customer: "Jane Smith", address: "456 Oak Ave", status: "Pickup", distance: "0.5 km", eta: "5 min" },
-      { id: 3, customer: "Mike Wilson", address: "789 Pine Rd", status: "Available", distance: "-", eta: "-" },
-    ]);
-  }, [user]);
+  const load = async () => { try { setDeliveries(await api.assignedDeliveries()); } catch (e) { setErr(e.message); } };
+  useEffect(() => { if (user) load(); }, [user]);
 
-  if (!user) {
-    return (
-      <div className="page">
-        <div className="page-head"><h1>Delivery Dashboard</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
-        <div className="empty"><div className="big">🚚</div><h3>Sign in required</h3><p>Only delivery partners can access this.</p><button className="cta inline" onClick={() => go("auth")}>Sign in</button></div>
-      </div>
-    );
-  }
+  if (!user) return <SignInGate title="Delivery Dashboard" emoji="🚚" msg="Only delivery partners can access this." go={go} theme={theme} setTheme={setTheme} />;
+
+  const completed = deliveries.filter((d) => d.status === "delivered").length;
+  const inProgress = deliveries.filter((d) => ["accepted", "picked_up", "on_the_way"].includes(d.status)).length;
+  const available = deliveries.filter((d) => d.status === "pending").length;
+
+  const NEXT = { pending: "accepted", accepted: "picked_up", picked_up: "on_the_way", on_the_way: "delivered" };
+  const LABEL = { pending: "Available", accepted: "Accepted", picked_up: "Picked up", on_the_way: "On the way", delivered: "Delivered" };
+  const BTN = { pending: "Accept", accepted: "Mark picked up", picked_up: "Start delivery", on_the_way: "Mark delivered" };
+  const advance = async (d) => { const n = NEXT[d.status]; if (!n) return; try { await api.updateDeliveryStatus(d.id, n); load(); } catch (e) { setErr(e.message); } };
 
   return (
     <div className="page">
-      <div className="page-head"><h1>Delivery Dashboard</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
+      <DashHead title="Delivery Dashboard" go={go} theme={theme} setTheme={setTheme} />
+      {err && <div className="err" style={{ marginBottom: 14 }}>{err}</div>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
-        <div className="glass" style={{ padding: 12, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: "var(--muted)" }}>Completed</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>{stats.completed}</div>
-        </div>
-        <div className="glass" style={{ padding: 12, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: "var(--muted)" }}>In Progress</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>{stats.inProgress}</div>
-        </div>
-        <div className="glass" style={{ padding: 12, borderRadius: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: "var(--muted)" }}>Available</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>{stats.available}</div>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 18 }}>
+        {statCard("Completed", completed)}
+        {statCard("In progress", inProgress)}
+        {statCard("Available", available)}
       </div>
 
-      <h3 style={{ marginBottom: 12 }}>Deliveries</h3>
-      {deliveries.map(delivery => (
-        <div key={delivery.id} className="glass" style={{ padding: 12, borderRadius: 12, marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h3>Deliveries</h3>
+        <button className="icon-btn" onClick={load} title="Refresh"><RefreshCw size={16} /></button>
+      </div>
+      {deliveries.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>No deliveries available right now.</p>}
+      {deliveries.map((d) => (
+        <div key={d.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div><strong>{delivery.customer}</strong></div>
-            <span style={{ padding: "4px 8px", borderRadius: 6, background: delivery.status === "Delivering" ? "var(--primary)" : delivery.status === "Pickup" ? "var(--accent-ink)" : "var(--glass-2)", fontSize: 11 }}>{delivery.status}</span>
+            <strong><Package size={14} style={{ verticalAlign: "-2px" }} /> Order #{d.order?.id?.slice(-5) || "—"}</strong>
+            {statusPill(LABEL[d.status], d.status !== "pending")}
           </div>
-          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>📍 {delivery.address}</div>
-          <div style={{ display: "flex", gap: 16, fontSize: 11 }}>
-            <span>🛣️ {delivery.distance}</span>
-            <span>⏱️ {delivery.eta}</span>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+            <MapPin size={13} /> {d.order?.address || "No address"}
           </div>
+          <div style={{ fontSize: 12, marginBottom: 10 }}>${d.order?.total ?? "—"} · ETA {d.estimated_time || "—"}</div>
+          {NEXT[d.status]
+            ? <button className="cta" onClick={() => advance(d)}>{BTN[d.status]}</button>
+            : <span style={{ fontSize: 12, color: "var(--primary)", fontWeight: 700 }}>✓ Delivered</span>}
         </div>
       ))}
 
-      <div style={{ marginTop: 20 }}>
-        <button className="cta" style={{ width: "100%", marginBottom: 10 }} onClick={() => go("home")}>Back to Home</button>
-        <button className="cta" style={{ width: "100%", background: "var(--glass)" }} onClick={() => { logout(); go("home"); }}>Sign Out</button>
-      </div>
+      <SignOutRow logout={logout} go={go} />
     </div>
   );
 }

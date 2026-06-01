@@ -17,6 +17,15 @@ export default function App() {
   const go = (screen, extra = {}) => { setNav({ screen, ...extra }); window.scrollTo({ top: 0 }); };
   const onNav = (id) => go(id);
 
+  // Where a user lands after authenticating, based on their role.
+  const landingFor = (role, next) => {
+    if (role === "owner") return "owner-dashboard";
+    if (role === "admin") return "admin-dashboard";
+    if (role === "delivery_rider") return "delivery-dashboard";
+    return next || "home";
+  };
+  const afterAuth = (u) => go(landingFor(u?.role, nav.next));
+
   useEffect(() => {
     api.foods().then((d) => { if (Array.isArray(d) && d.length) setFoods(d); }).catch(() => {});
     api.categories().then((d) => { if (Array.isArray(d) && d.length) setCategories(d); }).catch(() => {});
@@ -27,13 +36,19 @@ export default function App() {
 
   let screen;
   if (nav.screen === "auth") {
-    screen = <Auth theme={theme} setTheme={setTheme} onBack={() => go("home")} onDone={() => go(nav.next || "home")} />;
+    screen = <Auth theme={theme} setTheme={setTheme} onBack={() => go("home")} onDone={afterAuth} />;
   } else if (nav.screen === "admin-dashboard") {
-    screen = <AdminDashboard go={go} theme={theme} setTheme={setTheme} />;
+    screen = user?.role === "admin"
+      ? <AdminDashboard go={go} theme={theme} setTheme={setTheme} />
+      : <Home foods={foods} categories={categories} onOpen={(f) => go("detail", { foodId: f.id })} theme={theme} setTheme={setTheme} go={go} />;
   } else if (nav.screen === "owner-dashboard") {
-    screen = <OwnerDashboard go={go} theme={theme} setTheme={setTheme} />;
+    screen = user?.role === "owner"
+      ? <OwnerDashboard go={go} theme={theme} setTheme={setTheme} />
+      : <Home foods={foods} categories={categories} onOpen={(f) => go("detail", { foodId: f.id })} theme={theme} setTheme={setTheme} go={go} />;
   } else if (nav.screen === "delivery-dashboard") {
-    screen = <DeliveryBoyDashboard go={go} theme={theme} setTheme={setTheme} />;
+    screen = user?.role === "delivery_rider"
+      ? <DeliveryBoyDashboard go={go} theme={theme} setTheme={setTheme} />
+      : <Home foods={foods} categories={categories} onOpen={(f) => go("detail", { foodId: f.id })} theme={theme} setTheme={setTheme} go={go} />;
   } else if (nav.screen === "detail" && selectedFood) {
     screen = <FoodDetail food={selectedFood} theme={theme} setTheme={setTheme} onBack={() => go("home")} />;
   } else if (nav.screen === "cart") {

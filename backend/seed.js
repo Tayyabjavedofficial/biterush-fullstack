@@ -1,0 +1,78 @@
+import bcrypt from "bcryptjs";
+import { User, Category, Restaurant, Food, PromoCode } from "./models.js";
+
+const categories = [
+  { name: "Burger", emoji: "🍔" },
+  { name: "Pizza", emoji: "🍕" },
+  { name: "Chicken", emoji: "🍗" },
+  { name: "Fries", emoji: "🍟" },
+  { name: "Drinks", emoji: "🥤" },
+  { name: "Dessert", emoji: "🍰" },
+];
+
+const foods = [
+  { name: "Classic Royale Burger", restaurant: "Burger Flame", category: "Burger", price: 9.8, emoji: "🍔", img: "https://loremflickr.com/600/600/burger?lock=10", rating: 4.8, time: "25 min", distance: "1.4 km", kcal: 198, protein: 25, fat: 13, carbs: 23, description: "A flame-grilled beef patty layered with crisp lettuce, ripe tomato, melted cheddar and our signature house sauce on a toasted brioche bun." },
+  { name: "Spicy Inferno Pizza", restaurant: "Pizza Craft", category: "Pizza", price: 12.5, emoji: "🍕", img: "https://loremflickr.com/600/600/pizza?lock=20", rating: 4.7, time: "30 min", distance: "2.1 km", kcal: 285, protein: 14, fat: 11, carbs: 34, description: "Wood-fired thin crust loaded with pepperoni, jalapenos, red chilli flakes and a fiery hot-sauce drizzle for heat lovers." },
+  { name: "Chicken Fried Rice", restaurant: "Nom Nom House", category: "Chicken", price: 8.0, emoji: "🍛", img: "https://loremflickr.com/600/600/rice?lock=30", rating: 4.6, time: "20 min", distance: "1.1 km", kcal: 240, protein: 18, fat: 9, carbs: 30, description: "Wok-tossed jasmine rice with tender chicken, egg, spring onions and a savoury soy-garlic glaze." },
+  { name: "Beef Cheesy Delight", restaurant: "Crunch Kitchen", category: "Burger", price: 11.2, emoji: "🧀", img: "https://loremflickr.com/600/600/burger?lock=40", rating: 4.9, time: "28 min", distance: "1.8 km", kcal: 310, protein: 28, fat: 16, carbs: 18, description: "Double smashed beef stacked with a molten cheese core, caramelised onions and smoked aioli." },
+  { name: "Crispy Fries", restaurant: "Burger Flame", category: "Fries", price: 4.5, emoji: "🍟", img: "https://loremflickr.com/600/600/fries?lock=50", rating: 4.5, time: "15 min", distance: "1.4 km", kcal: 312, protein: 4, fat: 15, carbs: 41, description: "Golden hand-cut fries, double-fried for maximum crunch and dusted with sea salt." },
+  { name: "Fresh Orange Juice", restaurant: "Crunch Kitchen", category: "Drinks", price: 3.8, emoji: "🧃", img: "https://loremflickr.com/600/600/juice?lock=60", rating: 4.4, time: "10 min", distance: "1.8 km", kcal: 110, protein: 2, fat: 0, carbs: 26, description: "Cold-pressed seasonal oranges, no added sugar - bright, sweet and refreshing." },
+];
+
+const promos = [
+  { code: "WELCOME10", type: "percent", value: 10, min_order: 0 },
+  { code: "SAVE5", type: "flat", value: 5, min_order: 15 },
+];
+
+// Idempotent: only inserts what is missing. Safe to call on every cold start.
+export async function seed() {
+  if ((await Category.estimatedDocumentCount()) === 0) {
+    await Category.insertMany(categories);
+  }
+
+  // Demo accounts (admin / owner / rider / customer), password: "password".
+  const demoAccounts = [
+    { name: "BiteRush Admin", email: "admin@biterush.com", role: "admin" },
+    { name: "Demo Owner", email: "owner@biterush.com", role: "owner" },
+    { name: "Demo Rider", email: "rider@biterush.com", role: "delivery_rider" },
+    { name: "Demo Customer", email: "customer@biterush.com", role: "customer" },
+  ];
+  const hash = bcrypt.hashSync("password", 10);
+  for (const acc of demoAccounts) {
+    const exists = await User.findOne({ email: acc.email });
+    if (!exists) await User.create({ ...acc, password: hash });
+  }
+
+  // Demo restaurant owned by the demo owner.
+  const owner = await User.findOne({ email: "owner@biterush.com" });
+  let restaurant = await Restaurant.findOne({ owner_id: owner?._id });
+  if (owner && !restaurant) {
+    restaurant = await Restaurant.create({
+      name: "Burger Flame",
+      owner_id: owner._id,
+      address: "Naperville, IL",
+      phone: "+1 630 555 0142",
+      rating: 4.8,
+    });
+    owner.restaurant_id = restaurant._id;
+    await owner.save();
+  }
+
+  if ((await Food.estimatedDocumentCount()) === 0) {
+    // Attach the first two foods to the demo restaurant so the owner dashboard
+    // has data to show; the rest stay as platform foods.
+    const docs = foods.map((f, i) =>
+      i < 2 && restaurant
+        ? { ...f, restaurant: restaurant.name, restaurant_id: restaurant._id, owner_id: owner._id }
+        : f
+    );
+    await Food.insertMany(docs);
+  }
+
+  for (const p of promos) {
+    const exists = await PromoCode.findOne({ code: p.code });
+    if (!exists) await PromoCode.create(p);
+  }
+}
+
+export default seed;

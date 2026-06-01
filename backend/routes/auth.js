@@ -1,44 +1,64 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import db from "../db.js";
+import { User, Restaurant, ROLES } from "../models.js";
 import { signToken, authRequired } from "../auth.js";
 
 const router = Router();
 
-router.post("/register", (req, res) => {
-  const { name, email, password } = req.body || {};
+const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role });
+
+router.post("/register", async (req, res) => {
+  const { name, email, password, role } = req.body || {};
   if (!name || !email || !password)
     return res.status(400).json({ error: "name, email and password are required" });
   if (password.length < 4)
     return res.status(400).json({ error: "Password must be at least 4 characters" });
 
-  const exists = db.get("SELECT id FROM users WHERE email = ?", [email]);
+  const wantRole = ROLES.includes(role) ? role : "customer";
+
+  const exists = await User.findOne({ email: email.toLowerCase() });
   if (exists) return res.status(409).json({ error: "Email already registered" });
 
   const hash = bcrypt.hashSync(password, 10);
-  const info = db.run(
-    "INSERT INTO users (name,email,password,created_at) VALUES (?,?,?,?)",
-    [name, email, hash, new Date().toISOString()]
-  );
+  const user = await User.create({ name, email, password: hash, role: wantRole });
 
-  const user = { id: info.lastInsertRowid, name, email };
-  res.json({ token: signToken(user), user });
+  // Owners get a restaurant created automatically so they can manage a menu.
+  if (wantRole === "owner") {
+    const restaurant = await Restaurant.create({ name: `${name}'s Kitchen`, owner_id: user._id });
+    user.restaurant_id = restaurant._id;
+    await user.save();
+  }
+
+  res.json({ token: signToken(user), user: publicUser(user) });
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body || {};
-  const row = db.get("SELECT * FROM users WHERE email = ?", [email]);
-  if (!row || !bcrypt.compareSync(password || "", row.password))
+  const user = await User.findOne({ email: (email || "").toLowerCase() });
+  if (!user || !bcrypt.compareSync(password || "", user.password))
     return res.status(401).json({ error: "Invalid email or password" });
 
-  const user = { id: row.id, name: row.name, email: row.email };
-  res.json({ token: signToken(user), user });
+  res.json({ token: signToken(user), user: publicUser(user) });
 });
 
-router.get("/me", authRequired, (req, res) => {
-  const row = db.get("SELECT id,name,email FROM users WHERE id = ?", [req.user.id]);
-  if (!row) return res.status(404).json({ error: "User not found" });
-  res.json(row);
+router.get("/me", authRequired, async (req, res) => {
+  const user = await User.findById(req.user.id).select("-password");
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json(user.toJSON());
+});
+
+router.put("/me", authRequired, async (req, res) => {
+  const { name, phone, address, picture } = req.body || {};
+  const user = await User.findById(req.user.id);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  // Role is intentionally NOT self-editable here; admins manage roles.
+  if (name !== undefined) user.name = name;
+  if (phone !== undefined) user.phone = phone;
+  if (address !== undefined) user.address = address;
+  if (picture !== undefined) user.picture = picture;
+  await user.save();
+  const { password, ...rest } = user.toJSON();
+  res.json(rest);
 });
 
 export default router;

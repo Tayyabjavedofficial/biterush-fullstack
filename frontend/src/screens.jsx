@@ -52,9 +52,10 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
     setErr("");
     setBusy(true);
     try {
-      if (mode === "login") await login(email, password);
-      else await register(name, email, password, role);
-      onDone();
+      const u = mode === "login"
+        ? await login(email, password)
+        : await register(name, email, password, role);
+      onDone(u);
     } catch (e) {
       setErr(e.message || "Something went wrong");
     } finally {
@@ -111,6 +112,7 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
               <label>Your role</label>
               <select value={role} onChange={(e) => setRole(e.target.value)}>
                 <option value="customer">👤 Customer - Order food</option>
+                <option value="owner">🏪 Restaurant Owner - Manage a menu</option>
                 <option value="delivery_rider">🚴 Delivery Rider - Deliver orders</option>
                 <option value="admin">👨‍💼 Admin - Manage platform</option>
               </select>
@@ -545,14 +547,39 @@ function RecommendedCarousel({ foods, onOpen }) {
 /* ------------------------------- Food Detail ------------------------------ */
 export function FoodDetail({ food, onBack, theme, setTheme }) {
   const { add } = useCart();
+  const { user } = useAuth();
   const [qty, setQty] = useState(1);
   const [expanded, setExpanded] = useState(false);
   const [added, setAdded] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [myRating, setMyRating] = useState(5);
+  const [myComment, setMyComment] = useState("");
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewErr, setReviewErr] = useState("");
+
+  useEffect(() => {
+    api.reviews({ food: food.id }).then(setReviews).catch(() => setReviews([]));
+  }, [food.id]);
 
   function addToCart() {
     add(food, qty);
     setAdded(true);
     setTimeout(() => setAdded(false), 1300);
+  }
+
+  async function submitReview() {
+    setReviewErr("");
+    setReviewBusy(true);
+    try {
+      await api.createReview({ food_id: food.id, rating: myRating, comment: myComment });
+      setMyComment("");
+      setMyRating(5);
+      setReviews(await api.reviews({ food: food.id }));
+    } catch (e) {
+      setReviewErr(e.message || "Could not submit review");
+    } finally {
+      setReviewBusy(false);
+    }
   }
 
   const text = food.description || "";
@@ -608,6 +635,43 @@ export function FoodDetail({ food, onBack, theme, setTheme }) {
           <button className={"cta" + (added ? " added" : "")} onClick={addToCart}>
             {added ? <><Check size={19} /> Added to cart</> : <>Add to cart · ${(food.price * qty).toFixed(2)}</>}
           </button>
+
+          <h3 style={{ marginTop: 22 }}>Reviews {reviews.length > 0 && <span style={{ color: "var(--muted)", fontWeight: 600, fontSize: 14 }}>({reviews.length})</span>}</h3>
+
+          {user ? (
+            <div className="glass" style={{ padding: 14, borderRadius: 18, marginBottom: 14 }}>
+              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button key={n} onClick={() => setMyRating(n)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: n <= myRating ? "var(--star)" : "var(--muted)" }}>
+                    <Star size={22} fill={n <= myRating ? "currentColor" : "none"} />
+                  </button>
+                ))}
+              </div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Share your thoughts on this dish…" />
+              </div>
+              {reviewErr && <div className="err" style={{ marginBottom: 10 }}>{reviewErr}</div>}
+              <button className="cta" onClick={submitReview} disabled={reviewBusy}>{reviewBusy ? "Posting…" : "Post review"}</button>
+            </div>
+          ) : (
+            <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 14 }}>Sign in to leave a review.</p>
+          )}
+
+          {reviews.length === 0 ? (
+            <p style={{ color: "var(--muted)", fontSize: 13 }}>No reviews yet — be the first!</p>
+          ) : (
+            reviews.map((r) => (
+              <div key={r.id} className="glass" style={{ padding: 12, borderRadius: 16, marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <strong style={{ fontSize: 14 }}>{r.user_name || "User"}</strong>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3, color: "var(--star)", fontSize: 13, fontWeight: 700 }}>
+                    <Star size={14} fill="currentColor" /> {r.rating}
+                  </span>
+                </div>
+                {r.comment && <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>{r.comment}</p>}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -684,9 +748,25 @@ export function Checkout({ go, theme, setTheme }) {
   const [payment, setPayment] = useState("Cash on Delivery");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [promo, setPromo] = useState("");
+  const [applied, setApplied] = useState(null); // { code, discount }
+  const [promoErr, setPromoErr] = useState("");
 
   const delivery = items.length ? DELIVERY_FEE : 0;
-  const grand = Math.round((total + delivery) * 100) / 100;
+  const discount = applied?.discount || 0;
+  const grand = Math.round((total + delivery - discount) * 100) / 100;
+
+  async function applyPromo() {
+    setPromoErr("");
+    if (!promo.trim()) return;
+    try {
+      const r = await api.validatePromo({ code: promo.trim(), subtotal: total });
+      setApplied({ code: r.code, discount: r.discount });
+    } catch (e) {
+      setApplied(null);
+      setPromoErr(e.message || "Invalid code");
+    }
+  }
 
   async function place() {
     if (!address.trim() || items.length === 0) return;
@@ -697,6 +777,7 @@ export function Checkout({ go, theme, setTheme }) {
         items: items.map((x) => ({ food_id: x.food.id, qty: x.qty })),
         address,
         payment,
+        promo_code: applied?.code || "",
       });
       clear();
       go("orders");
@@ -751,15 +832,53 @@ export function Checkout({ go, theme, setTheme }) {
         );
       })}
 
+      <h3 style={{ fontFamily: "var(--font-display)", margin: "16px 2px 10px", fontSize: 16 }}>Promo code</h3>
+      <div className="promo-row">
+        <input className="dash-input" value={promo} onChange={(e) => setPromo(e.target.value)} placeholder="e.g. WELCOME10" disabled={!!applied} />
+        {applied
+          ? <button className="profile-cta-secondary" style={{ width: "auto", padding: "10px 16px" }} onClick={() => { setApplied(null); setPromo(""); }}>Remove</button>
+          : <button className="cta" style={{ width: "auto", padding: "10px 18px" }} onClick={applyPromo}>Apply</button>}
+      </div>
+      {promoErr && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 4 }}>{promoErr}</div>}
+      {applied && <div className="promo-applied"><Check size={14} /> Code {applied.code} applied · −${applied.discount.toFixed(2)}</div>}
+
       <div className="summary glass" style={{ marginTop: 14 }}>
         <div className="sumrow"><span>Items ({items.length})</span><span>${total.toFixed(2)}</span></div>
         <div className="sumrow"><span>Delivery fee</span><span>${delivery.toFixed(2)}</span></div>
+        {discount > 0 && <div className="sumrow" style={{ color: "var(--accent-ink)" }}><span>Discount ({applied.code})</span><span>−${discount.toFixed(2)}</span></div>}
         <div className="sumrow total"><span>Total</span><span>${grand.toFixed(2)}</span></div>
       </div>
 
       <button className="cta" style={{ marginTop: 16 }} onClick={place} disabled={busy || !address.trim() || items.length === 0}>
         {busy ? "Placing order…" : `Place order · $${grand.toFixed(2)}`}
       </button>
+    </div>
+  );
+}
+
+/* Simulated order-status timeline */
+const ORDER_STEPS = [
+  { key: "PLACED", label: "Order placed" },
+  { key: "PREPARING", label: "Preparing your food" },
+  { key: "READY", label: "Ready for pickup" },
+  { key: "ON_THE_WAY", label: "On the way" },
+  { key: "DELIVERED", label: "Delivered" },
+];
+function OrderTimeline({ status }) {
+  if (status === "CANCELLED")
+    return <div className="badge-status" style={{ background: "rgba(239,68,68,.15)", color: "#ef4444" }}>Cancelled</div>;
+  const current = Math.max(0, ORDER_STEPS.findIndex((s) => s.key === status));
+  return (
+    <div className="timeline">
+      {ORDER_STEPS.map((s, i) => {
+        const done = i <= current;
+        return (
+          <div key={s.key} className={"tl-step" + (done ? " done" : "") + (i === current ? " current" : "")}>
+            <div className="tl-dot">{done ? <Check size={13} /> : null}</div>
+            <div className="tl-label">{s.label}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -796,17 +915,24 @@ export function Orders({ go, theme, setTheme }) {
         orders.map((o) => (
           <div className="order-card glass" key={o.id}>
             <div className="order-top">
-              <span className="oid">Order #{o.id}</span>
-              <span className="badge-status">{o.status}</span>
+              <span className="oid">Order #{String(o.id).slice(-6)}</span>
+              <span className="badge-status">{(o.status || "").replace(/_/g, " ")}</span>
             </div>
-            {o.items.map((it) => (
-              <div className="order-line" key={it.id}>
+            {o.items.map((it, idx) => (
+              <div className="order-line" key={idx}>
                 <span>{it.qty} × {it.name}</span>
                 <span>${(it.price * it.qty).toFixed(2)}</span>
               </div>
             ))}
+            {o.discount > 0 && (
+              <div className="order-line" style={{ color: "var(--accent-ink)" }}>
+                <span>Promo {o.promo_code}</span>
+                <span>−${o.discount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="order-foot"><span>Total</span><span>${o.total.toFixed(2)}</span></div>
-            <div className="order-date" style={{ marginTop: 6 }}>{new Date(o.created_at).toLocaleString()} · {o.payment}</div>
+            <OrderTimeline status={o.status} />
+            <div className="order-date" style={{ marginTop: 10 }}>{new Date(o.created_at).toLocaleString()} · {o.payment}</div>
           </div>
         ))
       )}

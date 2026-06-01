@@ -388,6 +388,34 @@ body { margin: 0; background: #0F1117; }
   .profile-cta-card{padding:46px 38px 36px;}
 }
 
+/* ---------- dashboard inputs (reuse theme tokens) ---------- */
+.dash-select,.dash-input{padding:10px 12px;border-radius:12px;border:1px solid var(--border);
+  background:var(--glass);color:var(--text);font-size:13.5px;font-family:var(--font-body);outline:none;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:border-color .2s ease;}
+.dash-select{cursor:pointer;}
+.dash-select:focus,.dash-input:focus{border-color:var(--primary);}
+.dash-select option{background:var(--bg-2);color:var(--text);}
+
+/* ---------- order status timeline (simulated tracking) ---------- */
+.timeline{display:flex;flex-direction:column;gap:0;margin-top:12px;}
+.tl-step{display:flex;gap:12px;align-items:flex-start;position:relative;padding-bottom:18px;}
+.tl-step:last-child{padding-bottom:0;}
+.tl-step::before{content:"";position:absolute;left:11px;top:24px;bottom:0;width:2px;background:var(--border-soft);}
+.tl-step:last-child::before{display:none;}
+.tl-dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;
+  background:var(--glass-2);border:1px solid var(--border);color:var(--muted);z-index:1;transition:all .3s ease;}
+.tl-step.done .tl-dot{background:var(--primary);border-color:var(--primary);color:var(--btn-text);
+  box-shadow:0 6px 16px -4px var(--glow);}
+.tl-step.done.current .tl-dot{animation:tlPulse 1.8s ease-in-out infinite;}
+.tl-label{font-size:13.5px;font-weight:700;color:var(--muted);padding-top:2px;}
+.tl-step.done .tl-label{color:var(--text);}
+@keyframes tlPulse{0%,100%{box-shadow:0 6px 16px -4px var(--glow);}50%{box-shadow:0 6px 22px 0 var(--glow);}}
+
+/* ---------- promo code row ---------- */
+.promo-row{display:flex;gap:8px;margin:6px 0 2px;}
+.promo-row input{flex:1;text-transform:uppercase;}
+.promo-applied{display:flex;align-items:center;gap:6px;color:var(--accent-ink);font-size:12.5px;font-weight:700;}
+
 /* ---------- premium auth form ---------- */
 .auth-form-caption{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
 .field select{cursor:pointer;appearance:none;padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:20px;}

@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem("biterush_token", token);
     setToken(token);
     setUser(user);
+    return user;
   }
 
   async function register(name, email, password, role = "customer") {
@@ -33,6 +34,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem("biterush_token", token);
     setToken(token);
     setUser(user);
+    return user;
   }
 
   function logout() {
