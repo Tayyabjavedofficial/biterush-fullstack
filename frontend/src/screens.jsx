@@ -4,7 +4,7 @@ import {
   Navigation, ArrowLeft, Plus, Minus, Check, ShoppingBag, Receipt, Heart,
   CreditCard, Wallet, MapPin as Pin, Settings, LogOut, ChevronRight, User,
   ChevronLeft, CheckCircle, Gift, Truck, Zap, TrendingUp, Sandwich, UtensilsCrossed, Cookie, CupSoda, Pizza,
-  MessageCircle, Eye, MapPinIcon, Phone, Share2,
+  MessageCircle, Eye, MapPinIcon, Phone, Share2, Smartphone, ShieldCheck,
 } from "lucide-react";
 import { ThemeToggle, HeroCarousel, FoodCard, Dish } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -741,6 +741,28 @@ export function Cart({ go, theme, setTheme }) {
   );
 }
 
+/* card helpers (client-side only — PAN/CVV never leave the browser) */
+function luhnOk(num) {
+  const s = (num || "").replace(/\D/g, "");
+  if (s.length < 13) return false;
+  let sum = 0, alt = false;
+  for (let i = s.length - 1; i >= 0; i--) {
+    let d = +s[i];
+    if (alt) { d *= 2; if (d > 9) d -= 9; }
+    sum += d; alt = !alt;
+  }
+  return sum % 10 === 0;
+}
+function cardNetwork(num) {
+  const n = (num || "").replace(/\D/g, "");
+  if (/^4/.test(n)) return "Visa";
+  if (/^5[1-5]/.test(n) || /^2[2-7]/.test(n)) return "Mastercard";
+  if (/^3[47]/.test(n)) return "Amex";
+  if (/^6/.test(n)) return "Discover";
+  return "Card";
+}
+const randHex = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n))).map((b) => b.toString(16).padStart(2, "0")).join("");
+
 /* -------------------------------- Checkout -------------------------------- */
 export function Checkout({ go, theme, setTheme }) {
   const { items, total, clear } = useCart();
@@ -752,6 +774,9 @@ export function Checkout({ go, theme, setTheme }) {
   const [promo, setPromo] = useState("");
   const [applied, setApplied] = useState(null); // { code, discount }
   const [promoErr, setPromoErr] = useState("");
+  const [card, setCard] = useState({ number: "", exp: "", cvv: "", name: "" });
+  const [wallet, setWallet] = useState({ phone: "", pin: "" });
+  const [idemKey] = useState(() => "idem_" + randHex(12)); // one per checkout — prevents double-charge
 
   const delivery = items.length ? DELIVERY_FEE : 0;
   const discount = applied?.discount || 0;
@@ -769,8 +794,42 @@ export function Checkout({ go, theme, setTheme }) {
     }
   }
 
+  function validatePayment() {
+    if (payment === "Card") {
+      if (!luhnOk(card.number)) return "Enter a valid card number.";
+      const m = card.exp.match(/^(\d{2})\s*\/\s*(\d{2})$/);
+      if (!m) return "Expiry must be in MM/YY format.";
+      const mo = +m[1], yr = 2000 + +m[2], now = new Date();
+      if (mo < 1 || mo > 12) return "Invalid expiry month.";
+      if (new Date(yr, mo, 1) <= new Date(now.getFullYear(), now.getMonth(), 1)) return "This card has expired.";
+      if (!/^\d{3,4}$/.test(card.cvv)) return "Invalid CVV.";
+      if (!card.name.trim()) return "Enter the name on the card.";
+    }
+    if (payment === "JazzCash" || payment === "EasyPaisa") {
+      const digits = wallet.phone.replace(/\D/g, "");
+      if (digits.length !== 11 || !digits.startsWith("03")) return "Enter a valid mobile number (03XXXXXXXXX).";
+      if (!/^\d{4,6}$/.test(wallet.pin)) return `Enter your ${payment} MPIN.`;
+    }
+    return "";
+  }
+
+  // Build the data sent to the server. The card PAN and the CVV/PIN are NEVER
+  // included — only a random token, the last 4 digits, or the wallet number.
+  function buildPaymentDetails() {
+    if (payment === "Card") {
+      const num = card.number.replace(/\D/g, "");
+      return { token: "tok_" + randHex(16), last4: num.slice(-4), network: cardNetwork(num) };
+    }
+    if (payment === "JazzCash" || payment === "EasyPaisa") {
+      return { wallet: wallet.phone.replace(/\D/g, "") };
+    }
+    return {};
+  }
+
   async function place() {
     if (!address.trim() || items.length === 0) return;
+    const v = validatePayment();
+    if (v) { setErr(v); return; }
     setErr("");
     setBusy(true);
     try {
@@ -779,6 +838,8 @@ export function Checkout({ go, theme, setTheme }) {
         address,
         payment,
         promo_code: applied?.code || "",
+        payment_details: buildPaymentDetails(),
+        idempotency_key: idemKey,
       });
       clear();
       go("orders");
@@ -803,9 +864,13 @@ export function Checkout({ go, theme, setTheme }) {
   }
 
   const options = [
-    { id: "Cash on Delivery", icon: Wallet },
-    { id: "Card", icon: CreditCard },
+    { id: "Cash on Delivery", icon: Wallet, sub: "Pay with cash on arrival" },
+    { id: "Card", icon: CreditCard, sub: "Visa · Mastercard" },
+    { id: "JazzCash", icon: Smartphone, sub: "Mobile wallet" },
+    { id: "EasyPaisa", icon: Smartphone, sub: "Mobile wallet" },
   ];
+  const fmtCard = (v) => v.replace(/\D/g, "").slice(0, 19).replace(/(\d{4})(?=\d)/g, "$1 ");
+  const fmtExp = (v) => { const d = v.replace(/\D/g, "").slice(0, 4); return d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d; };
 
   return (
     <div className="page">
@@ -827,11 +892,56 @@ export function Checkout({ go, theme, setTheme }) {
         const I = o.icon;
         return (
           <div key={o.id} className={"opt" + (payment === o.id ? " on" : "")} onClick={() => setPayment(o.id)}>
-            <I size={18} /> {o.id}
+            <I size={18} />
+            <span style={{ flex: 1 }}>{o.id}<small style={{ display: "block", color: "var(--muted)", fontWeight: 500, fontSize: 11 }}>{o.sub}</small></span>
             <span className="tick">{payment === o.id && <Check size={12} />}</span>
           </div>
         );
       })}
+
+      {payment === "Card" && (
+        <div className="glass pay-form">
+          <div className="field">
+            <label>Card number</label>
+            <input inputMode="numeric" autoComplete="cc-number" value={card.number}
+              onChange={(e) => setCard({ ...card, number: fmtCard(e.target.value) })} placeholder="4242 4242 4242 4242" />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div className="field" style={{ flex: 1 }}>
+              <label>Expiry</label>
+              <input inputMode="numeric" value={card.exp} onChange={(e) => setCard({ ...card, exp: fmtExp(e.target.value) })} placeholder="MM/YY" />
+            </div>
+            <div className="field" style={{ width: 110 }}>
+              <label>CVV</label>
+              <input type="password" inputMode="numeric" value={card.cvv} maxLength={4}
+                onChange={(e) => setCard({ ...card, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="•••" />
+            </div>
+          </div>
+          <div className="field">
+            <label>Name on card</label>
+            <input value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value })} placeholder="Full name" />
+          </div>
+        </div>
+      )}
+
+      {(payment === "JazzCash" || payment === "EasyPaisa") && (
+        <div className="glass pay-form">
+          <div className="field">
+            <label>{payment} mobile number</label>
+            <input inputMode="numeric" value={wallet.phone}
+              onChange={(e) => setWallet({ ...wallet, phone: e.target.value.replace(/\D/g, "").slice(0, 11) })} placeholder="03XXXXXXXXX" />
+          </div>
+          <div className="field">
+            <label>MPIN</label>
+            <input type="password" inputMode="numeric" value={wallet.pin} maxLength={6}
+              onChange={(e) => setWallet({ ...wallet, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })} placeholder="••••" />
+          </div>
+        </div>
+      )}
+
+      {payment !== "Cash on Delivery" && (
+        <div className="pay-secure"><ShieldCheck size={14} /> Secured — your details are encrypted in your browser; we never store your card number, CVV, or PIN.</div>
+      )}
 
       <h3 style={{ fontFamily: "var(--font-display)", margin: "16px 2px 10px", fontSize: 16 }}>Promo code</h3>
       <div className="promo-row">
@@ -851,7 +961,7 @@ export function Checkout({ go, theme, setTheme }) {
       </div>
 
       <button className="cta" style={{ marginTop: 16 }} onClick={place} disabled={busy || !address.trim() || items.length === 0}>
-        {busy ? "Placing order…" : `Place order · $${grand.toFixed(2)}`}
+        {busy ? "Processing payment…" : payment === "Cash on Delivery" ? `Place order · $${grand.toFixed(2)}` : `Pay $${grand.toFixed(2)}`}
       </button>
     </div>
   );

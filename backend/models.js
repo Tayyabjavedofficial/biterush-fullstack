@@ -92,6 +92,12 @@ const orderSchema = new Schema({
   total: { type: Number, required: true },
   address: { type: String, default: "" },
   payment: { type: String, default: "Cash on Delivery" },
+  // Payment outcome — NEVER stores card PAN/CVV or wallet PIN. Only safe, masked data.
+  payment_status: { type: String, enum: ["pending", "paid", "failed", "cod"], default: "pending" },
+  payment_ref: { type: String, default: "" },   // HMAC-signed transaction reference
+  payment_last4: { type: String, default: "" },  // card last 4 only
+  payment_wallet: { type: String, default: "" }, // masked mobile-wallet number
+  idempotency_key: { type: String, default: "", index: true },
   status: { type: String, enum: ORDER_STATUSES, default: "PLACED" },
   created_at: { type: Date, default: Date.now },
 });
