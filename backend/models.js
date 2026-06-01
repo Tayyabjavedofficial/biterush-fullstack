@@ -28,6 +28,8 @@ const userSchema = new Schema({
   phone: { type: String, default: "" },
   address: { type: String, default: "" },
   picture: { type: String, default: "" },
+  lat: { type: Number, default: null },
+  lng: { type: Number, default: null },
   created_at: { type: Date, default: Date.now },
 });
 toJSON(userSchema);

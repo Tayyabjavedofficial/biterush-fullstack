@@ -48,7 +48,7 @@ router.get("/me", authRequired, async (req, res) => {
 });
 
 router.put("/me", authRequired, async (req, res) => {
-  const { name, phone, address, picture } = req.body || {};
+  const { name, phone, address, picture, lat, lng } = req.body || {};
   const user = await User.findById(req.user.id);
   if (!user) return res.status(404).json({ error: "User not found" });
   // Role is intentionally NOT self-editable here; admins manage roles.
@@ -56,6 +56,8 @@ router.put("/me", authRequired, async (req, res) => {
   if (phone !== undefined) user.phone = phone;
   if (address !== undefined) user.address = address;
   if (picture !== undefined) user.picture = picture;
+  if (lat !== undefined) user.lat = lat === null ? null : Number(lat);
+  if (lng !== undefined) user.lng = lng === null ? null : Number(lng);
   await user.save();
   const { password, ...rest } = user.toJSON();
   res.json(rest);
