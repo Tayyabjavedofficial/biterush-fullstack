@@ -3,11 +3,20 @@ import { LocateFixed, Search, Route, X, Flag, MapPin } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const NOMINATIM = "https://nominatim.openstreetmap.org";
+// Photon (Komoot) — browser-friendly geocoding with reliable CORS.
+const PHOTON = "https://photon.komoot.io";
 const OSRM = "https://router.project-osrm.org";
 
-// A self-contained delivery-location map: search, live location, and shortest-route.
-// `value` = saved destination {lat,lng}; `onChange(lat,lng,address?)` persists it upstream.
+function labelOf(p = {}) {
+  const parts = [];
+  if (p.name) parts.push(p.name);
+  else if (p.street) parts.push((p.housenumber ? p.housenumber + " " : "") + p.street);
+  [p.city || p.county, p.state, p.country].forEach((x) => x && parts.push(x));
+  return [...new Set(parts)].join(", ");
+}
+
+// Self-contained delivery-location map: search, live location, shortest route.
+// `value` = saved destination {lat,lng}; `onChange(lat,lng,address?)` persists upstream.
 export function LocationMap({ value, editing, onChange }) {
   const elRef = useRef(null);
   const map = useRef(null);
@@ -21,7 +30,7 @@ export function LocationMap({ value, editing, onChange }) {
   const [routeInfo, setRouteInfo] = useState(null);
   const [q, setQ] = useState("");
   const [oq, setOq] = useState("");
-  const [results, setResults] = useState(null); // { for: 'dest'|'orig', items }
+  const [results, setResults] = useState(null); // { for: 'dest'|'orig', items: [{label,lat,lng}] }
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
 
@@ -44,17 +53,13 @@ export function LocationMap({ value, editing, onChange }) {
     else origMk.current = L.marker([lat, lng], { icon: dot("#3b82f6") }).addTo(map.current).bindTooltip("Start");
   };
 
-  // init map once
   useEffect(() => {
     if (map.current || !elRef.current) return;
     const start = dest || { lat: 39.5, lng: -98.35 };
     map.current = L.map(elRef.current, { zoomControl: true }).setView([start.lat, start.lng], dest ? 15 : 4);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map.current);
     map.current.attributionControl.setPrefix("");
-    map.current.on("click", (e) => {
-      if (!editingRef.current) return;
-      setDestination(e.latlng.lat, e.latlng.lng, true);
-    });
+    map.current.on("click", (e) => { if (editingRef.current) setDestination(e.latlng.lat, e.latlng.lng, { reverse: true }); });
     if (dest) placeDest(dest.lat, dest.lng);
     setTimeout(() => map.current && map.current.invalidateSize(), 120);
     return () => { map.current?.remove(); map.current = null; };
@@ -63,23 +68,25 @@ export function LocationMap({ value, editing, onChange }) {
 
   async function reverseGeocode(lat, lng) {
     try {
-      const r = await fetch(`${NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { Accept: "application/json" } });
+      const r = await fetch(`${PHOTON}/reverse?lat=${lat}&lon=${lng}`);
       const d = await r.json();
-      return d?.display_name || `${lat}, ${lng}`;
+      const f = d.features?.[0];
+      return (f && labelOf(f.properties)) || `${lat}, ${lng}`;
     } catch { return `${lat}, ${lng}`; }
   }
 
-  async function setDestination(lat, lng, withAddress) {
-    lat = +lat.toFixed(6); lng = +lng.toFixed(6);
+  async function setDestination(lat, lng, { address, reverse } = {}) {
+    lat = +(+lat).toFixed(6); lng = +(+lng).toFixed(6);
     setDest({ lat, lng });
     placeDest(lat, lng);
     map.current?.setView([lat, lng], Math.max(map.current.getZoom(), 14));
     setResults(null);
-    const address = withAddress ? await reverseGeocode(lat, lng) : undefined;
-    onChange?.(lat, lng, address);
+    let addr = address;
+    if (!addr && reverse) addr = await reverseGeocode(lat, lng);
+    onChange?.(lat, lng, addr);
   }
   function setOrigin(lat, lng) {
-    lat = +lat.toFixed(6); lng = +lng.toFixed(6);
+    lat = +(+lat).toFixed(6); lng = +(+lng).toFixed(6);
     setOrig({ lat, lng });
     placeOrig(lat, lng);
     setResults(null);
@@ -89,12 +96,21 @@ export function LocationMap({ value, editing, onChange }) {
     if (!query.trim()) return;
     setBusy(target); setErr("");
     try {
-      const r = await fetch(`${NOMINATIM}/search?format=json&limit=5&q=${encodeURIComponent(query)}`, { headers: { Accept: "application/json" } });
-      const items = await r.json();
-      if (!items.length) setErr("No matching places found.");
+      const bias = dest || orig;
+      let url = `${PHOTON}/api/?q=${encodeURIComponent(query)}&limit=6`;
+      if (bias) url += `&lat=${bias.lat}&lon=${bias.lng}`;
+      const r = await fetch(url);
+      const data = await r.json();
+      const items = (data.features || [])
+        .map((f) => ({ label: labelOf(f.properties), lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] }))
+        .filter((x) => x.label);
+      if (!items.length) setErr("No matching places found. Try a more specific search.");
       setResults({ for: target, items });
-    } catch { setErr("Search failed. Try again."); }
-    finally { setBusy(""); }
+    } catch {
+      setErr("Search failed. Check your connection and try again.");
+    } finally {
+      setBusy("");
+    }
   }
 
   function liveLocation(target) {
@@ -103,7 +119,7 @@ export function LocationMap({ value, editing, onChange }) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        if (target === "dest") setDestination(latitude, longitude, true);
+        if (target === "dest") setDestination(latitude, longitude, { reverse: true });
         else setOrigin(latitude, longitude);
         setBusy("");
       },
@@ -126,8 +142,11 @@ export function LocationMap({ value, editing, onChange }) {
       else line.current = L.polyline(latlngs, { color: "#C6F035", weight: 5, opacity: 0.85 }).addTo(map.current);
       map.current.fitBounds(line.current.getBounds(), { padding: [30, 30] });
       setRouteInfo({ km: (route.distance / 1000).toFixed(1), min: Math.round(route.duration / 60) });
-    } catch { setErr("Routing service unavailable. Try again."); }
-    finally { setBusy(""); }
+    } catch {
+      setErr("Routing service unavailable. Try again.");
+    } finally {
+      setBusy("");
+    }
   }
 
   function clearRoute() {
@@ -136,65 +155,50 @@ export function LocationMap({ value, editing, onChange }) {
     setOrig(null); setOq(""); setRouteInfo(null);
   }
 
+  const Results = ({ which, icon: Icon, onPick }) =>
+    results?.for === which && Array.isArray(results.items) && results.items.length > 0 ? (
+      <ul className="map-results">
+        {results.items.map((it, i) => (
+          <li key={i} onClick={() => onPick(it)}><Icon size={13} /> {it.label}</li>
+        ))}
+      </ul>
+    ) : null;
+
   return (
     <div className="locmap">
       {editing && (
         <div className="map-search">
-          <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), search(q, "dest"))}
+          <input value={q} onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(q, "dest"); } }}
             placeholder="Search a destination address or place…" />
-          <button className="icon-btn" onClick={() => search(q, "dest")} title="Search">
-            {busy === "dest" ? "…" : <Search size={16} />}
-          </button>
-          <button className="icon-btn" onClick={() => liveLocation("dest")} title="Use my live location">
-            {busy === "live-dest" ? "…" : <LocateFixed size={16} />}
-          </button>
+          <button className="icon-btn" onClick={() => search(q, "dest")} title="Search">{busy === "dest" ? "…" : <Search size={16} />}</button>
+          <button className="icon-btn" onClick={() => liveLocation("dest")} title="Use my live location">{busy === "live-dest" ? "…" : <LocateFixed size={16} />}</button>
         </div>
       )}
 
-      {results?.for === "dest" && (
-        <ul className="map-results">
-          {results.items.map((it, i) => (
-            <li key={i} onClick={() => { setQ(it.display_name); setDestination(+it.lat, +it.lon); onChange?.(+(+it.lat).toFixed(6), +(+it.lon).toFixed(6), it.display_name); }}>
-              <MapPin size={13} /> {it.display_name}
-            </li>
-          ))}
-        </ul>
-      )}
+      <Results which="dest" icon={MapPin} onPick={(it) => { setQ(it.label); setDestination(it.lat, it.lng, { address: it.label }); }} />
 
       <div ref={elRef} className="locmap-canvas" />
-
       {dest && <div className="profile-coords"><MapPin size={13} /> Destination: {dest.lat}, {dest.lng}</div>}
 
       {/* Route analysis */}
       <div className="route-tools">
         <div className="map-search">
-          <input value={oq} onChange={(e) => setOq(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), search(oq, "orig"))}
+          <input value={oq} onChange={(e) => setOq(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(oq, "orig"); } }}
             placeholder="Route start (origin)…" />
-          <button className="icon-btn" onClick={() => search(oq, "orig")} title="Search start">
-            {busy === "orig" ? "…" : <Search size={16} />}
-          </button>
-          <button className="icon-btn" onClick={() => liveLocation("orig")} title="Use my location as start">
-            {busy === "live-orig" ? "…" : <LocateFixed size={16} />}
-          </button>
+          <button className="icon-btn" onClick={() => search(oq, "orig")} title="Search start">{busy === "orig" ? "…" : <Search size={16} />}</button>
+          <button className="icon-btn" onClick={() => liveLocation("orig")} title="Use my location as start">{busy === "live-orig" ? "…" : <LocateFixed size={16} />}</button>
         </div>
-        {results?.for === "orig" && (
-          <ul className="map-results">
-            {results.items.map((it, i) => (
-              <li key={i} onClick={() => { setOq(it.display_name); setOrigin(+it.lat, +it.lon); }}>
-                <Flag size={13} /> {it.display_name}
-              </li>
-            ))}
-          </ul>
-        )}
+        <Results which="orig" icon={Flag} onPick={(it) => { setOq(it.label); setOrigin(it.lat, it.lng); }} />
         <div className="route-btns">
           <button className="cta" onClick={findRoute} disabled={!orig || !dest || busy === "route"} style={{ flex: 1 }}>
             <Route size={18} /> {busy === "route" ? "Finding…" : "Find shortest route"}
           </button>
           {routeInfo && <button className="icon-btn" onClick={clearRoute} title="Clear route"><X size={16} /></button>}
         </div>
-        {routeInfo && (
-          <div className="route-info"><Route size={15} /> Shortest route: <b>{routeInfo.km} km</b> · ~<b>{routeInfo.min} min</b> by road</div>
-        )}
+        {!dest && <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 8 }}>Set a destination above first, then a start point to see the route.</p>}
+        {routeInfo && <div className="route-info"><Route size={15} /> Shortest route: <b>{routeInfo.km} km</b> · ~<b>{routeInfo.min} min</b> by road</div>}
       </div>
 
       {err && <div className="err" style={{ marginTop: 10 }}>{err}</div>}
