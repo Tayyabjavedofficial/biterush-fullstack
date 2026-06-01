@@ -3,7 +3,7 @@ import {
   Search, Bell, MapPin, ChevronDown, SlidersHorizontal, Heart, Plus,
   Home as HomeIcon, ShoppingBag, Receipt, User, Sun, Moon, Star,
   Pizza, Coffee, Croissant, Cookie, Soup, CupSoda, Sandwich, Cherry, Sparkles, Citrus,
-  Egg, UtensilsCrossed, GripHorizontal, Zap,
+  Egg, UtensilsCrossed, GripHorizontal, Zap, Eye, EyeOff,
 } from "lucide-react";
 import { HERO_SLIDES } from "./data.js";
 import { useCart } from "./context/CartContext.jsx";
@@ -24,6 +24,32 @@ export function Dish({ src, emoji }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <span className="em">{emoji}</span>;
   return <img className="ph" src={src} alt="" loading="lazy" onError={() => setFailed(true)} />;
+}
+
+// Password field with a show/hide (eye) toggle.
+export function PasswordInput({ value, onChange, placeholder, autoComplete }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="pw-wrap">
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+      />
+      <button
+        type="button"
+        className="pw-eye"
+        tabIndex={-1}
+        onClick={() => setShow((s) => !s)}
+        aria-label={show ? "Hide password" : "Show password"}
+        title={show ? "Hide password" : "Show password"}
+      >
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
 }
 
 export function ThemeToggle({ theme, setTheme }) {

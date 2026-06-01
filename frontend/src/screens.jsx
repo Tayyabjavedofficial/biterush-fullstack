@@ -6,7 +6,7 @@ import {
   ChevronLeft, CheckCircle, Gift, Truck, Zap, TrendingUp, Sandwich, UtensilsCrossed, Cookie, CupSoda, Pizza,
   MessageCircle, Eye, MapPinIcon, Phone, Share2, Smartphone, ShieldCheck, LocateFixed, Send,
 } from "lucide-react";
-import { ThemeToggle, HeroCarousel, FoodCard, Dish } from "./components.jsx";
+import { ThemeToggle, HeroCarousel, FoodCard, Dish, PasswordInput } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { useCart } from "./context/CartContext.jsx";
 import { api } from "./api.js";
@@ -92,7 +92,7 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
             </div>
             <div className="field">
               <label>Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" />
+              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" autoComplete="current-password" />
             </div>
           </>
         ) : (
@@ -108,7 +108,7 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
             </div>
             <div className="field">
               <label>Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" />
+              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" autoComplete="current-password" />
             </div>
             <div className="field">
               <label>Your role</label>

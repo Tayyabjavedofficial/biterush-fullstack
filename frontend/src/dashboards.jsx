@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package, MessageCircle, Check } from "lucide-react";
-import { ThemeToggle } from "./components.jsx";
+import { ThemeToggle, PasswordInput } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { api } from "./api.js";
 import { OrderChat } from "./OrderChat.jsx";
@@ -317,15 +317,15 @@ export function AdminDashboard({ go, theme, setTheme }) {
           <p style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 14 }}>Signed in as <b>{user.email}</b></p>
           <div className="field" style={{ marginBottom: 10 }}>
             <label>Current password</label>
-            <input type="password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} placeholder="Current password" />
+            <PasswordInput value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} placeholder="Current password" autoComplete="current-password" />
           </div>
           <div className="field" style={{ marginBottom: 10 }}>
             <label>New password</label>
-            <input type="password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} placeholder="At least 6 characters" />
+            <PasswordInput value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} placeholder="At least 6 characters" autoComplete="new-password" />
           </div>
           <div className="field" style={{ marginBottom: 12 }}>
             <label>Confirm new password</label>
-            <input type="password" value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} placeholder="Re-enter new password" />
+            <PasswordInput value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} placeholder="Re-enter new password" autoComplete="new-password" />
           </div>
           {pwMsg && <div className={pwMsg.ok ? "promo-applied" : "err"} style={{ marginBottom: 12 }}>{pwMsg.ok ? <><Check size={14} /> {pwMsg.text}</> : pwMsg.text}</div>}
           <button className="cta" onClick={changePw} disabled={pwBusy || !pw.current || !pw.next}>
