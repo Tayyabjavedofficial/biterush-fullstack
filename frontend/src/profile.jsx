@@ -6,7 +6,6 @@ import { ThemeToggle } from "./components.jsx";
 export function ProfileScreen({ go, theme, setTheme }) {
   const { user, token, logout } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
@@ -16,8 +15,9 @@ export function ProfileScreen({ go, theme, setTheme }) {
     role: "customer",
     picture: "",
   });
-  const [selectedFile, setSelectedFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -59,16 +59,15 @@ export function ProfileScreen({ go, theme, setTheme }) {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setFormData({ ...formData, picture: event.target.result });
-        setSelectedFile(file);
-      };
+      reader.onload = (event) => setFormData((f) => ({ ...f, picture: event.target.result }));
       reader.readAsDataURL(file);
     }
   };
 
   const handleSave = async () => {
     setSaving(true);
+    setErr("");
+    setSaved(false);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
         method: "PUT",
@@ -80,22 +79,20 @@ export function ProfileScreen({ go, theme, setTheme }) {
           name: formData.name,
           phone: formData.phone,
           address: formData.address,
-          role: formData.role,
           picture: formData.picture,
         }),
       });
 
       if (res.ok) {
-        const updated = await res.json();
-        setProfile(updated);
-        setEditing(false);
-        alert("Profile updated successfully!");
+        setProfile(await res.json());
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
       } else {
-        alert("Failed to update profile");
+        const e = await res.json().catch(() => ({}));
+        setErr(e.error || "Failed to save changes");
       }
-    } catch (err) {
-      console.error("Failed to save profile:", err);
-      alert("Error saving profile");
+    } catch (e) {
+      setErr("Could not reach the server. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -180,12 +177,10 @@ export function ProfileScreen({ go, theme, setTheme }) {
       <div className="profile-view">
         <div className="profile-avatar">
           {formData.picture ? <img src={formData.picture} alt="Profile" /> : <span className="pa-fallback">{initial}</span>}
-          {editing && (
-            <label className="profile-cam" title="Change photo">
-              <Camera size={17} />
-              <input type="file" accept="image/*" onChange={handleFileSelect} />
-            </label>
-          )}
+          <label className="profile-cam" title="Change photo">
+            <Camera size={17} />
+            <input type="file" accept="image/*" onChange={handleFileSelect} />
+          </label>
         </div>
         <div className="profile-name">{formData.name || "Your name"}</div>
         <div className="profile-email">{formData.email}</div>
@@ -203,59 +198,43 @@ export function ProfileScreen({ go, theme, setTheme }) {
         </button>
       </div>
 
-      {/* Personal information */}
+      {/* Personal information — always editable */}
       <div className="profile-section">
         <h3>Personal information</h3>
         <div className="glass profile-card">
           <div className="field">
             <label>Full name</label>
-            <input type="text" value={formData.name} disabled={!editing}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Your name" />
+            <input type="text" value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Enter your full name" />
           </div>
           <div className="field">
-            <label>Email address</label>
+            <label>Email address <span className="field-note">(can't be changed)</span></label>
             <input type="email" value={formData.email} disabled />
           </div>
           <div className="field">
             <label>Phone number</label>
-            <input type="tel" value={formData.phone} disabled={!editing}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="Enter phone number" />
+            <input type="tel" value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="e.g. +1 555 0100" />
           </div>
           <div className="field">
-            <label>Address</label>
-            <textarea value={formData.address} disabled={!editing} rows="3"
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Enter your delivery address" />
+            <label>Delivery address</label>
+            <textarea value={formData.address} rows="3"
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="House, street, area, city…" />
           </div>
           <div className="field">
-            <label>Role</label>
+            <label>Role <span className="field-note">(set by admin)</span></label>
             <input type="text" value={ROLE_LABELS[formData.role] || "👤 Customer"} disabled />
           </div>
+
+          {err && <div className="err" style={{ margin: "2px 0 12px" }}>{err}</div>}
+          <button className="cta" onClick={handleSave} disabled={saving} style={{ marginBottom: 6 }}>
+            <Save size={18} /> {saving ? "Saving…" : saved ? "Saved ✓" : "Save changes"}
+          </button>
         </div>
       </div>
 
       {/* Actions */}
       <div className="profile-btns">
-        {!editing ? (
-          <button className="cta" onClick={() => setEditing(true)}>Edit profile</button>
-        ) : (
-          <div className="two">
-            <button className="cta" onClick={handleSave} disabled={saving}>
-              <Save size={18} /> {saving ? "Saving…" : "Save"}
-            </button>
-            <button className="profile-cta-secondary" onClick={() => {
-              setEditing(false);
-              setFormData({
-                name: profile.name || "",
-                email: profile.email || "",
-                phone: profile.phone || "",
-                address: profile.address || "",
-                role: profile.role || "customer",
-                picture: profile.picture || "",
-              });
-            }}>Cancel</button>
-          </div>
-        )}
-
         {formData.role !== "customer" && (
           <button className="profile-cta-secondary" onClick={() => go(
             formData.role === "owner" ? "owner-dashboard" :
