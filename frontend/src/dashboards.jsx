@@ -83,6 +83,9 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const [newRest, setNewRest] = useState({ name: "", address: "", cuisine: "", image: "🍽️" });
   const [newCat, setNewCat] = useState({ name: "", emoji: "" });
   const [newPromo, setNewPromo] = useState({ code: "", type: "percent", value: "", min_order: "" });
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+  const [pwMsg, setPwMsg] = useState(null);
+  const [pwBusy, setPwBusy] = useState(false);
 
   const load = async () => {
     try {
@@ -108,8 +111,20 @@ export function AdminDashboard({ go, theme, setTheme }) {
     catch (e) { setErr(e.message); }
   };
   const delPromo = async (id) => { try { await api.deletePromo(id); load(); } catch (e) { setErr(e.message); } };
+  const changePw = async () => {
+    setPwMsg(null);
+    if (pw.next.length < 6) { setPwMsg({ ok: false, text: "New password must be at least 6 characters." }); return; }
+    if (pw.next !== pw.confirm) { setPwMsg({ ok: false, text: "New passwords don't match." }); return; }
+    setPwBusy(true);
+    try {
+      await api.changePassword({ currentPassword: pw.current, newPassword: pw.next });
+      setPw({ current: "", next: "", confirm: "" });
+      setPwMsg({ ok: true, text: "Password changed successfully." });
+    } catch (e) { setPwMsg({ ok: false, text: e.message || "Couldn't change password." }); }
+    finally { setPwBusy(false); }
+  };
 
-  const TABS = [["insights", "Insights"], ["orders", "Orders"], ["users", "Users"], ["restaurants", "Restaurants"], ["categories", "Categories"], ["promos", "Promos"]];
+  const TABS = [["insights", "Insights"], ["orders", "Orders"], ["users", "Users"], ["restaurants", "Restaurants"], ["categories", "Categories"], ["promos", "Promos"], ["account", "Account"]];
 
   // Analytics computed from the loaded data.
   const statusList = ["PLACED", "PREPARING", "READY", "ON_THE_WAY", "DELIVERED", "CANCELLED"];
@@ -294,6 +309,29 @@ export function AdminDashboard({ go, theme, setTheme }) {
             </div>
           ))}
         </>
+      )}
+
+      {tab === "account" && (
+        <div className="glass" style={{ padding: 16, borderRadius: 16 }}>
+          <h3 style={{ marginBottom: 4, fontSize: 15 }}>Change password</h3>
+          <p style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 14 }}>Signed in as <b>{user.email}</b></p>
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label>Current password</label>
+            <input type="password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} placeholder="Current password" />
+          </div>
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label>New password</label>
+            <input type="password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} placeholder="At least 6 characters" />
+          </div>
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label>Confirm new password</label>
+            <input type="password" value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} placeholder="Re-enter new password" />
+          </div>
+          {pwMsg && <div className={pwMsg.ok ? "promo-applied" : "err"} style={{ marginBottom: 12 }}>{pwMsg.ok ? <><Check size={14} /> {pwMsg.text}</> : pwMsg.text}</div>}
+          <button className="cta" onClick={changePw} disabled={pwBusy || !pw.current || !pw.next}>
+            {pwBusy ? "Updating…" : "Update password"}
+          </button>
+        </div>
       )}
 
       <SignOutRow logout={logout} go={go} />

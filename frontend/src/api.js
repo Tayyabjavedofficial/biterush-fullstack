@@ -34,6 +34,7 @@ export const api = {
   login: (b) => request("/auth/login", { method: "POST", body: b }),
   me: () => request("/auth/me", { auth: true }),
   updateMe: (b) => request("/auth/me", { method: "PUT", body: b, auth: true }),
+  changePassword: (b) => request("/auth/password", { method: "PUT", body: b, auth: true }),
 
   // ---- catalog ----
   categories: () => request("/categories"),

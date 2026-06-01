@@ -67,4 +67,18 @@ router.put("/me", authRequired, async (req, res) => {
   res.json(rest);
 });
 
+// PUT /api/auth/password — change own password (verifies the current one first)
+router.put("/password", authRequired, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!newPassword || newPassword.length < 6)
+    return res.status(400).json({ error: "New password must be at least 6 characters" });
+  const user = await User.findById(req.user.id);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  if (!bcrypt.compareSync(currentPassword || "", user.password))
+    return res.status(401).json({ error: "Current password is incorrect" });
+  user.password = bcrypt.hashSync(newPassword, 10);
+  await user.save();
+  res.json({ ok: true });
+});
+
 export default router;
