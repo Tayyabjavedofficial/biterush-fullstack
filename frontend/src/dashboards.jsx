@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package, MessageCircle } from "lucide-react";
 import { ThemeToggle } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -125,6 +125,12 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const maxRole = Math.max(1, ...byRole.map((x) => x.n));
   const maxFood = Math.max(1, ...topFoods.map(([, n]) => n));
 
+  // Keep the active tab scrolled into view (the strip itself has no scrollbar).
+  const segRef = useRef(null);
+  useEffect(() => {
+    segRef.current?.querySelector(".on")?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [tab]);
+
   return (
     <div className="page">
       <DashHead title="Admin Dashboard" go={go} theme={theme} setTheme={setTheme} />
@@ -137,9 +143,14 @@ export function AdminDashboard({ go, theme, setTheme }) {
         {statCard("Restaurants", stats.totalRestaurants)}
       </div>
 
-      <div className="seg" style={{ marginBottom: 18, overflowX: "auto" }}>
+      <div className="seg seg-scroll" ref={segRef} style={{ marginBottom: 12 }}>
         {TABS.map(([id, label]) => (
           <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)} style={{ flex: "0 0 auto", padding: "10px 14px" }}>{label}</button>
+        ))}
+      </div>
+      <div className="tab-dots">
+        {TABS.map(([id]) => (
+          <span key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)} title={id} />
         ))}
       </div>
 

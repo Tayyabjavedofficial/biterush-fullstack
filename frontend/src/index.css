@@ -458,6 +458,13 @@ body { margin: 0; background: #0F1117; }
   margin:10px 2px 2px;line-height:1.4;}
 .pay-secure svg{flex-shrink:0;margin-top:1px;}
 
+/* ---------- admin tab strip: no scrollbar line + dotted pagination ---------- */
+.seg-scroll{overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+.seg-scroll::-webkit-scrollbar{display:none;height:0;}
+.tab-dots{display:flex;justify-content:center;gap:7px;margin-bottom:18px;}
+.tab-dots span{width:7px;height:7px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .25s ease;}
+.tab-dots span.on{width:20px;border-radius:6px;background:var(--primary);box-shadow:0 4px 10px -3px var(--glow);}
+
 /* ---------- restaurant search rows ---------- */
 .restaurant-row{padding:14px;border-radius:16px;cursor:pointer;transition:transform .15s ease;}
 .restaurant-row:hover{transform:translateY(-2px);}
