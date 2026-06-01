@@ -86,10 +86,21 @@ router.post("/", authRequired, requireRole("customer"), async (req, res) => {
   res.json(order.toJSON());
 });
 
-// GET /api/orders — current customer's orders
+// GET /api/orders — current customer's orders (enriched with rider + ETA for tracking)
 router.get("/", authRequired, async (req, res) => {
   const orders = await Order.find({ user_id: req.user.id }).sort({ created_at: -1 });
-  res.json(orders.map((o) => o.toJSON()));
+  const out = [];
+  for (const o of orders) {
+    const j = o.toJSON();
+    if (o.rider_id) {
+      const rider = await User.findById(o.rider_id).select("name phone");
+      if (rider) { j.rider_name = rider.name; j.rider_phone = rider.phone; }
+    }
+    const del = await Delivery.findOne({ order_id: o._id }).select("estimated_time");
+    if (del) j.eta = del.estimated_time;
+    out.push(j);
+  }
+  res.json(out);
 });
 
 // GET /api/orders/restaurant — owner's restaurant orders

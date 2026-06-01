@@ -688,8 +688,23 @@ export function FoodDetail({ food, onBack, theme, setTheme }) {
 export function Cart({ go, theme, setTheme }) {
   const { items, setQty, remove, total } = useCart();
   const { user } = useAuth();
+  const [promo, setPromo] = useState(localStorage.getItem("biterush_promo") || "");
+  const [applied, setApplied] = useState(null);
+  const [promoErr, setPromoErr] = useState("");
   const delivery = items.length ? DELIVERY_FEE : 0;
-  const grand = Math.round((total + delivery) * 100) / 100;
+  const discount = applied?.discount || 0;
+  const grand = Math.round((total + delivery - discount) * 100) / 100;
+
+  async function applyPromo() {
+    setPromoErr("");
+    if (!promo.trim()) return;
+    try {
+      const r = await api.validatePromo({ code: promo.trim(), subtotal: total });
+      setApplied({ code: r.code, discount: r.discount });
+      localStorage.setItem("biterush_promo", r.code); // carry to checkout
+    } catch (e) { setApplied(null); setPromoErr(e.message || "Invalid code"); }
+  }
+  function clearPromo() { setApplied(null); setPromo(""); setPromoErr(""); localStorage.removeItem("biterush_promo"); }
 
   function checkout() {
     if (!user) go("auth", { next: "checkout" });
@@ -731,9 +746,19 @@ export function Cart({ go, theme, setTheme }) {
             </div>
           ))}
 
-          <div className="summary glass">
+          <div className="promo-row" style={{ marginTop: 14 }}>
+            <input className="dash-input" value={promo} onChange={(e) => setPromo(e.target.value)} placeholder="Promo code (e.g. WELCOME10)" disabled={!!applied} />
+            {applied
+              ? <button className="profile-cta-secondary" style={{ width: "auto", padding: "10px 16px" }} onClick={clearPromo}>Remove</button>
+              : <button className="cta" style={{ width: "auto", padding: "10px 18px" }} onClick={applyPromo}>Apply</button>}
+          </div>
+          {promoErr && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 4 }}>{promoErr}</div>}
+          {applied && <div className="promo-applied"><Check size={14} /> {applied.code} applied · −${applied.discount.toFixed(2)}</div>}
+
+          <div className="summary glass" style={{ marginTop: 12 }}>
             <div className="sumrow"><span>Subtotal</span><span>${total.toFixed(2)}</span></div>
             <div className="sumrow"><span>Delivery fee</span><span>${delivery.toFixed(2)}</span></div>
+            {discount > 0 && <div className="sumrow" style={{ color: "var(--accent-ink)" }}><span>Discount ({applied.code})</span><span>−${discount.toFixed(2)}</span></div>}
             <div className="sumrow total"><span>Total</span><span>${grand.toFixed(2)}</span></div>
           </div>
 
@@ -776,7 +801,7 @@ export function Checkout({ go, theme, setTheme }) {
   const [payment, setPayment] = useState("Cash on Delivery");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [promo, setPromo] = useState("");
+  const [promo, setPromo] = useState(localStorage.getItem("biterush_promo") || "");
   const [applied, setApplied] = useState(null); // { code, discount }
   const [promoErr, setPromoErr] = useState("");
   const [card, setCard] = useState({ number: "", exp: "", cvv: "", name: "" });
@@ -791,6 +816,16 @@ export function Checkout({ go, theme, setTheme }) {
       setAddress((a) => a || m.address || "");
     }).catch(() => {});
   }, [user]);
+
+  // Auto-apply a promo carried over from the cart.
+  useEffect(() => {
+    const code = localStorage.getItem("biterush_promo");
+    if (!code || applied || total <= 0) return;
+    api.validatePromo({ code, subtotal: total })
+      .then((r) => setApplied({ code: r.code, discount: r.discount }))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total]);
 
   const delivery = items.length ? DELIVERY_FEE : 0;
   const discount = applied?.discount || 0;
@@ -855,6 +890,7 @@ export function Checkout({ go, theme, setTheme }) {
         payment_details: buildPaymentDetails(),
         idempotency_key: idemKey,
       });
+      localStorage.removeItem("biterush_promo");
       clear();
       go("orders");
     } catch (e) {
@@ -1030,6 +1066,34 @@ function OrderTimeline({ status }) {
   );
 }
 
+/* Order tracking panel — map placeholder, rider card (call/message), ETA */
+function OrderTrackingPanel({ order, onMessage }) {
+  const live = order.status === "ON_THE_WAY";
+  return (
+    <div className="track-panel">
+      <div className={"track-map" + (live ? " live" : "")}>
+        <MapPin size={24} />
+        <div className="tm-title">{live ? "Rider en route" : "Live order tracking"}</div>
+        <small>{order.address}</small>
+      </div>
+      <div className="track-eta"><Clock size={14} /> Estimated arrival: <b>{order.eta || "~30 min"}</b></div>
+      {order.rider_name ? (
+        <div className="track-rider">
+          <div className="tr-avatar">{(order.rider_name[0] || "R").toUpperCase()}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700 }}>{order.rider_name}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>Your delivery rider</div>
+          </div>
+          {order.rider_phone ? <a className="icon-btn" href={`tel:${order.rider_phone}`} title="Call rider"><Phone size={16} /></a> : null}
+          <button className="icon-btn" onClick={onMessage} title="Message"><MessageCircle size={16} /></button>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>A rider will be assigned once your food is ready.</div>
+      )}
+    </div>
+  );
+}
+
 /* --------------------------------- Orders --------------------------------- */
 export function Orders({ go, theme, setTheme }) {
   const { user } = useAuth();
@@ -1084,6 +1148,7 @@ export function Orders({ go, theme, setTheme }) {
               </div>
             )}
             <div className="order-foot"><span>Total</span><span>${o.total.toFixed(2)}</span></div>
+            {o.id === activeId && <OrderTrackingPanel order={o} onMessage={() => setChatOrder(o.id)} />}
             {o.id === activeId && <OrderTimeline status={o.status} />}
             <div className="order-date" style={{ marginTop: 10 }}>{new Date(o.created_at).toLocaleString()} · {o.payment}</div>
             <button className="order-chat-btn" onClick={() => setChatOrder(o.id)}>
@@ -1115,6 +1180,7 @@ export function Search({ go, theme, setTheme }) {
   const [userLoc, setUserLoc] = useState(null);
   const [locating, setLocating] = useState(false);
   const [nearest, setNearest] = useState(false);
+  const [cat, setCat] = useState("All");
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -1131,11 +1197,13 @@ export function Search({ go, theme, setTheme }) {
     );
   };
 
+  const cuisines = ["All", ...new Set((restaurants || []).flatMap((r) => (r.cuisine || "").split(",").map((s) => s.trim()).filter(Boolean)))].slice(0, 9);
   let list = (restaurants || []).map((r) => ({ ...r, dist: distKm(userLoc, r) }));
   if (query.trim()) {
     const q = query.toLowerCase();
     list = list.filter((r) => r.name.toLowerCase().includes(q) || (r.cuisine || "").toLowerCase().includes(q));
   }
+  if (cat !== "All") list = list.filter((r) => (r.cuisine || "").toLowerCase().includes(cat.toLowerCase()));
   if (nearest && userLoc) list = [...list].sort((a, b) => (a.dist ?? 9e9) - (b.dist ?? 9e9));
 
   return (
@@ -1161,6 +1229,14 @@ export function Search({ go, theme, setTheme }) {
             </button>
             {nearest && <button className="chip" onClick={() => setNearest(false)}>Clear</button>}
           </div>
+
+          {cuisines.length > 1 && (
+            <div style={{ display: "flex", gap: 8, marginTop: 12, overflowX: "auto", paddingBottom: 4 }}>
+              {cuisines.map((c) => (
+                <button key={c} className={"chip" + (cat === c ? " on" : "")} onClick={() => setCat(c)} style={{ flexShrink: 0 }}>{c}</button>
+              ))}
+            </div>
+          )}
 
           {err && <div className="err" style={{ marginTop: 12 }}>{err}</div>}
 
