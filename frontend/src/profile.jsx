@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, Save, LogOut, UserPlus, LogIn, Sparkles, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, Camera, Save, LogOut, UserPlus, LogIn, Sparkles, LayoutDashboard, Receipt, ShoppingBag, ChevronRight } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import { ThemeToggle } from "./components.jsx";
 
@@ -190,6 +190,17 @@ export function ProfileScreen({ go, theme, setTheme }) {
         <div className="profile-name">{formData.name || "Your name"}</div>
         <div className="profile-email">{formData.email}</div>
         <span className="role-badge">{ROLE_LABELS[formData.role] || "👤 Customer"}</span>
+      </div>
+
+      {/* Quick actions */}
+      <div className="profile-section">
+        <h3>Quick actions</h3>
+        <button className="glass profile-action" onClick={() => go("orders")}>
+          <Receipt size={18} /><span>My orders</span><ChevronRight size={16} className="pa-arrow" />
+        </button>
+        <button className="glass profile-action" onClick={() => go("home")}>
+          <ShoppingBag size={18} /><span>Browse menu</span><ChevronRight size={16} className="pa-arrow" />
+        </button>
       </div>
 
       {/* Personal information */}
