@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, Save, LogOut, UserPlus, LogIn, Sparkles, LayoutDashboard, Receipt, ShoppingBag, ChevronRight } from "lucide-react";
+import { ArrowLeft, Camera, Save, LogOut, UserPlus, LogIn, Sparkles, LayoutDashboard, Receipt, ShoppingBag, ChevronRight, User, Store, Bike, ShieldCheck } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import { ThemeToggle } from "./components.jsx";
 
@@ -57,11 +57,26 @@ export function ProfileScreen({ go, theme, setTheme }) {
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => setFormData((f) => ({ ...f, picture: event.target.result }));
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      // Downscale to a small square-ish avatar so the base64 payload stays tiny.
+      const img = new Image();
+      img.onload = () => {
+        const max = 256;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        setFormData((f) => ({ ...f, picture: canvas.toDataURL("image/jpeg", 0.85) }));
+      };
+      img.onerror = () => setFormData((f) => ({ ...f, picture: event.target.result }));
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -144,12 +159,14 @@ export function ProfileScreen({ go, theme, setTheme }) {
     );
   }
 
-  const ROLE_LABELS = {
-    customer: "👤 Customer",
-    owner: "🏪 Restaurant Owner",
-    delivery_rider: "🚴 Delivery Rider",
-    admin: "👨‍💼 Admin",
+  const ROLE_META = {
+    customer: { label: "Customer", Icon: User },
+    owner: { label: "Restaurant Owner", Icon: Store },
+    delivery_rider: { label: "Delivery Rider", Icon: Bike },
+    admin: { label: "Admin", Icon: ShieldCheck },
   };
+  const role = ROLE_META[formData.role] || ROLE_META.customer;
+  const RoleIcon = role.Icon;
 
   if (loading)
     return (
@@ -175,16 +192,17 @@ export function ProfileScreen({ go, theme, setTheme }) {
 
       {/* Identity */}
       <div className="profile-view">
-        <div className="profile-avatar">
-          {formData.picture ? <img src={formData.picture} alt="Profile" /> : <span className="pa-fallback">{initial}</span>}
-          <label className="profile-cam" title="Change photo">
-            <Camera size={17} />
-            <input type="file" accept="image/*" onChange={handleFileSelect} />
-          </label>
-        </div>
+        <label className="profile-avatar" title="Upload profile photo">
+          {formData.picture
+            ? <img src={formData.picture} alt="Profile" />
+            : (formData.name ? <span className="pa-fallback">{initial}</span> : <User size={46} strokeWidth={1.6} className="pa-fallback-icon" />)}
+          <span className="profile-cam"><Camera size={16} /></span>
+          <input type="file" accept="image/*" onChange={handleFileSelect} />
+        </label>
         <div className="profile-name">{formData.name || "Your name"}</div>
         <div className="profile-email">{formData.email}</div>
-        <span className="role-badge">{ROLE_LABELS[formData.role] || "👤 Customer"}</span>
+        <span className="role-badge"><RoleIcon size={14} strokeWidth={2.2} /> {role.label}</span>
+        <div className="profile-photo-hint">Tap the photo to upload, then Save changes</div>
       </div>
 
       {/* Quick actions */}
@@ -223,7 +241,7 @@ export function ProfileScreen({ go, theme, setTheme }) {
           </div>
           <div className="field">
             <label>Role <span className="field-note">(set by admin)</span></label>
-            <input type="text" value={ROLE_LABELS[formData.role] || "👤 Customer"} disabled />
+            <input type="text" value={role.label} disabled />
           </div>
 
           {err && <div className="err" style={{ margin: "2px 0 12px" }}>{err}</div>}
