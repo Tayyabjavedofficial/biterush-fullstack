@@ -388,6 +388,32 @@ body { margin: 0; background: #0F1117; }
   .profile-cta-card{padding:46px 38px 36px;}
 }
 
+/* ---------- authenticated profile (glass theme) ---------- */
+.profile-view{display:flex;flex-direction:column;align-items:center;text-align:center;margin:6px 0 4px;}
+.profile-avatar{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;overflow:hidden;position:relative;
+  background:var(--glass);border:3px solid var(--primary);box-shadow:0 14px 32px -10px var(--glow),var(--inset);}
+.profile-avatar img{width:100%;height:100%;object-fit:cover;}
+.profile-avatar .pa-fallback{font-family:var(--font-display);font-weight:800;font-size:42px;color:var(--primary);}
+.profile-cam{position:absolute;bottom:2px;right:2px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
+  background:var(--primary);color:var(--btn-text);border:2px solid var(--bg);cursor:pointer;box-shadow:0 6px 16px -4px var(--glow);}
+.profile-cam input{display:none;}
+.profile-name{font-family:var(--font-display);font-size:23px;font-weight:800;margin-top:16px;color:var(--text);}
+.profile-email{color:var(--muted);font-size:14px;margin-top:3px;}
+.role-badge{display:inline-flex;align-items:center;gap:6px;margin-top:13px;padding:6px 16px;border-radius:999px;
+  font-size:12.5px;font-weight:800;background:var(--primary);color:var(--btn-text);box-shadow:0 8px 18px -6px var(--glow);}
+.profile-section{margin-top:18px;}
+.profile-section h3{font-family:var(--font-display);font-size:16px;margin:0 2px 12px;}
+.profile-card{padding:18px 18px 6px;border-radius:24px;}
+.field input:disabled,.field select:disabled,.field textarea:disabled{opacity:.6;cursor:not-allowed;}
+.profile-btns{display:flex;flex-direction:column;gap:12px;margin-top:20px;}
+.profile-btns .two{display:flex;gap:12px;}
+.profile-btns .two>*{flex:1;}
+.profile-info{margin-top:16px;padding:18px 18px 14px;border-radius:24px;}
+.profile-info .row{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--muted);padding:5px 0;}
+.profile-info .row b{color:var(--text);font-weight:700;}
+.profile-cta-secondary.btn-danger{color:#ef4444;border-color:rgba(239,68,68,.4);}
+.profile-cta-secondary.btn-danger:hover{background:rgba(239,68,68,.10);}
+
 /* ---------- dashboard inputs (reuse theme tokens) ---------- */
 .dash-select,.dash-input{padding:10px 12px;border-radius:12px;border:1px solid var(--border);
   background:var(--glass);color:var(--text);font-size:13.5px;font-family:var(--font-body);outline:none;

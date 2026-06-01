@@ -147,229 +147,122 @@ export function ProfileScreen({ go, theme, setTheme }) {
     );
   }
 
+  const ROLE_LABELS = {
+    customer: "👤 Customer",
+    owner: "🏪 Restaurant Owner",
+    delivery_rider: "🚴 Delivery Rider",
+    admin: "👨‍💼 Admin",
+  };
+
   if (loading)
     return (
-      <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-full min-h-screen flex items-center justify-center`}>
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-          <p className="mt-4 text-lg">Loading profile...</p>
+      <div className="page">
+        <div className="page-head">
+          <button className="icon-btn" onClick={() => go("home")}><ArrowLeft size={19} /></button>
+          <h1>Your Profile</h1>
+          <ThemeToggle theme={theme} setTheme={setTheme} />
         </div>
+        <div className="loading">Loading your profile…</div>
       </div>
     );
 
+  const initial = (formData.name || formData.email || "?").trim().charAt(0).toUpperCase();
+
   return (
-    <div className={`${theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50"} w-full min-h-screen pb-24`}>
-      {/* Header */}
-      <div className={`${theme === "dark" ? "bg-gray-800" : "bg-white"} sticky top-0 z-40 flex items-center justify-between p-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
-        <button onClick={() => go("home")} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition">
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="text-xl font-bold">My Profile</h1>
-        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition text-xl">
-          {theme === "dark" ? "☀️" : "🌙"}
+    <div className="page">
+      <div className="page-head">
+        <button className="icon-btn" onClick={() => go("home")}><ArrowLeft size={19} /></button>
+        <h1>Your Profile</h1>
+        <ThemeToggle theme={theme} setTheme={setTheme} />
+      </div>
+
+      {/* Identity */}
+      <div className="profile-view">
+        <div className="profile-avatar">
+          {formData.picture ? <img src={formData.picture} alt="Profile" /> : <span className="pa-fallback">{initial}</span>}
+          {editing && (
+            <label className="profile-cam" title="Change photo">
+              <Camera size={17} />
+              <input type="file" accept="image/*" onChange={handleFileSelect} />
+            </label>
+          )}
+        </div>
+        <div className="profile-name">{formData.name || "Your name"}</div>
+        <div className="profile-email">{formData.email}</div>
+        <span className="role-badge">{ROLE_LABELS[formData.role] || "👤 Customer"}</span>
+      </div>
+
+      {/* Personal information */}
+      <div className="profile-section">
+        <h3>Personal information</h3>
+        <div className="glass profile-card">
+          <div className="field">
+            <label>Full name</label>
+            <input type="text" value={formData.name} disabled={!editing}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Your name" />
+          </div>
+          <div className="field">
+            <label>Email address</label>
+            <input type="email" value={formData.email} disabled />
+          </div>
+          <div className="field">
+            <label>Phone number</label>
+            <input type="tel" value={formData.phone} disabled={!editing}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="Enter phone number" />
+          </div>
+          <div className="field">
+            <label>Address</label>
+            <textarea value={formData.address} disabled={!editing} rows="3"
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Enter your delivery address" />
+          </div>
+          <div className="field">
+            <label>Role</label>
+            <input type="text" value={ROLE_LABELS[formData.role] || "👤 Customer"} disabled />
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="profile-btns">
+        {!editing ? (
+          <button className="cta" onClick={() => setEditing(true)}>Edit profile</button>
+        ) : (
+          <div className="two">
+            <button className="cta" onClick={handleSave} disabled={saving}>
+              <Save size={18} /> {saving ? "Saving…" : "Save"}
+            </button>
+            <button className="profile-cta-secondary" onClick={() => {
+              setEditing(false);
+              setFormData({
+                name: profile.name || "",
+                email: profile.email || "",
+                phone: profile.phone || "",
+                address: profile.address || "",
+                role: profile.role || "customer",
+                picture: profile.picture || "",
+              });
+            }}>Cancel</button>
+          </div>
+        )}
+
+        {formData.role !== "customer" && (
+          <button className="profile-cta-secondary" onClick={() => go(
+            formData.role === "owner" ? "owner-dashboard" :
+            formData.role === "admin" ? "admin-dashboard" : "delivery-dashboard"
+          )}>
+            <LayoutDashboard size={18} /> Go to dashboard
+          </button>
+        )}
+
+        <button className="profile-cta-secondary btn-danger" onClick={handleLogout}>
+          <LogOut size={18} /> Sign out
         </button>
       </div>
 
-      <div className="w-full px-4 py-6">
-        {/* Profile Picture Section - Centered */}
-        <div className="flex flex-col items-center justify-center mb-8">
-          <div className="relative">
-            <div className={`w-40 h-40 rounded-full flex items-center justify-center ${theme === "dark" ? "bg-gray-800" : "bg-gray-200"} overflow-hidden border-4 border-orange-500 flex-shrink-0`}>
-              {formData.picture ? (
-                <img src={formData.picture} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <div className="text-7xl">👤</div>
-              )}
-            </div>
-            {editing && (
-              <label className="absolute bottom-0 right-0 bg-orange-500 text-white p-3 rounded-full cursor-pointer hover:bg-orange-600 transition shadow-lg">
-                <Camera size={24} />
-                <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
-              </label>
-            )}
-          </div>
-          <h2 className="text-3xl font-bold mt-6 text-center">{formData.name}</h2>
-          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} text-lg mt-1 text-center`}>{formData.email}</p>
-        </div>
-
-        {/* Role Badge - Centered */}
-        <div className="flex justify-center mb-8">
-          <span className={`px-6 py-2 rounded-full text-white font-bold text-lg ${
-            formData.role === "admin" ? "bg-red-500" :
-            formData.role === "delivery_rider" ? "bg-blue-500" :
-            "bg-green-500"
-          }`}>
-            {formData.role === "delivery_rider" ? "🚴 Delivery Rider" :
-             formData.role === "admin" ? "👨‍💼 Admin" :
-             "👤 Customer"}
-          </span>
-        </div>
-
-        {/* Profile Form - Full Width but organized */}
-        <div className={`${theme === "dark" ? "bg-gray-800" : "bg-white"} rounded-xl p-6 mb-6 shadow-lg`}>
-          <h3 className="text-xl font-bold mb-6">Personal Information</h3>
-
-          <div className="grid grid-cols-1 gap-6">
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-semibold mb-3">Full Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={!editing}
-                className={`w-full p-4 rounded-lg border text-base ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-gray-50 border-gray-300"
-                } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition`}
-              />
-            </div>
-
-            {/* Email (Read-only) */}
-            <div>
-              <label className="block text-sm font-semibold mb-3">Email Address</label>
-              <input
-                type="email"
-                value={formData.email}
-                disabled
-                className={`w-full p-4 rounded-lg border text-base ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-400"
-                    : "bg-gray-100 border-gray-300 text-gray-500"
-                } cursor-not-allowed`}
-              />
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-semibold mb-3">Phone Number</label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                disabled={!editing}
-                placeholder="Enter phone number"
-                className={`w-full p-4 rounded-lg border text-base ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-500"
-                    : "bg-gray-50 border-gray-300 placeholder-gray-400"
-                } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition`}
-              />
-            </div>
-
-            {/* Address */}
-            <div>
-              <label className="block text-sm font-semibold mb-3">Address</label>
-              <textarea
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                disabled={!editing}
-                placeholder="Enter your address"
-                rows="4"
-                className={`w-full p-4 rounded-lg border text-base ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-500"
-                    : "bg-gray-50 border-gray-300 placeholder-gray-400"
-                } ${editing ? "cursor-text" : "cursor-not-allowed opacity-60"} transition resize-none`}
-              />
-            </div>
-
-            {/* Role (read-only — managed by admins) */}
-            <div>
-              <label className="block text-sm font-semibold mb-3">User Role</label>
-              <select
-                value={formData.role}
-                disabled
-                className={`w-full p-4 rounded-lg border text-base ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-400"
-                    : "bg-gray-100 border-gray-300 text-gray-500"
-                } cursor-not-allowed`}
-              >
-                <option value="customer">👤 Customer - Order food</option>
-                <option value="owner">🏪 Restaurant Owner - Manage a menu</option>
-                <option value="delivery_rider">🚴 Delivery Rider - Deliver orders</option>
-                <option value="admin">👨‍💼 Admin - Manage platform</option>
-              </select>
-              <p className="text-xs mt-2 opacity-60">Your role is managed by an administrator.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-3 mb-6">
-          {!editing ? (
-            <button
-              onClick={() => setEditing(true)}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-lg"
-            >
-              ✏️ Edit Profile
-            </button>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-base"
-              >
-                <Save size={20} />
-                {saving ? "Saving..." : "Save"}
-              </button>
-              <button
-                onClick={() => {
-                  setEditing(false);
-                  setFormData({
-                    name: profile.name || "",
-                    email: profile.email || "",
-                    phone: profile.phone || "",
-                    address: profile.address || "",
-                    role: profile.role || "customer",
-                    picture: profile.picture || "",
-                  });
-                }}
-                className={`${theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-300 hover:bg-gray-400"} text-black font-bold py-4 rounded-lg transition text-base`}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {formData.role !== "customer" && (
-            <button
-              onClick={() => go(
-                formData.role === "owner" ? "owner-dashboard" :
-                formData.role === "admin" ? "admin-dashboard" :
-                "delivery-dashboard"
-              )}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-lg"
-            >
-              <LayoutDashboard size={20} />
-              Go to Dashboard
-            </button>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2 text-lg"
-          >
-            <LogOut size={20} />
-            Sign Out
-          </button>
-        </div>
-
-        {/* Account Info */}
-        <div className={`${theme === "dark" ? "bg-gray-800" : "bg-gray-100"} rounded-lg p-6 mb-4`}>
-          <h4 className="font-bold mb-4">Account Information</h4>
-          <div className="space-y-3">
-            <p className={`text-base ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-              <strong>Account ID:</strong> #{profile?.id}
-            </p>
-            <p className={`text-base ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-              <strong>Member since:</strong> {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"}
-            </p>
-          </div>
-        </div>
+      {/* Account info */}
+      <div className="glass profile-info">
+        <div className="row"><span>Account ID</span><b>#{String(profile?.id || "").slice(-8)}</b></div>
+        <div className="row"><span>Member since</span><b>{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"}</b></div>
       </div>
     </div>
   );
