@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, Save, LogOut, User } from "lucide-react";
+import { ArrowLeft, Camera, Save, LogOut, UserPlus, LogIn, Sparkles } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
+import { ThemeToggle } from "./components.jsx";
 
 export function ProfileScreen({ go, theme, setTheme }) {
   const { user, token, logout } = useAuth();
@@ -106,43 +107,40 @@ export function ProfileScreen({ go, theme, setTheme }) {
   };
 
   if (!user || !token) {
+    const goAuth = () => go("auth", { next: "profile" });
     return (
-      <div className="auth-wrap">
-        <div className="auth-card glass auth-signin">
-          <div className="auth-card-header">
-            <button onClick={() => go("home")} className="icon-btn">
-              <ArrowLeft size={20} />
-            </button>
-            <h1 className="auth-card-title">My Profile</h1>
-            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="icon-btn">
-              {theme === "dark" ? "☀️" : "🌙"}
-            </button>
-          </div>
+      <div className="page">
+        <div className="page-head">
+          <button className="icon-btn" onClick={() => go("home")}><ArrowLeft size={19} /></button>
+          <h1>Your Profile</h1>
+          <ThemeToggle theme={theme} setTheme={setTheme} />
+        </div>
 
-          <div className="auth-signin-content">
-            <div className="auth-icon-circle">
-              <User size={56} strokeWidth={1.5} />
+        <div className="profile-cta-wrap">
+          <div className="profile-cta-card glass reveal">
+            <div className="profile-cta-icon">
+              <UserPlus size={42} strokeWidth={1.8} />
+              <span className="profile-cta-spark"><Sparkles size={16} strokeWidth={2.2} /></span>
             </div>
 
-            <h2 className="auth-signin-heading">Sign in required</h2>
-
-            <p className="auth-signin-subtext">
-              Please sign in to view your profile, saved addresses, and manage your orders.
+            <h2 className="profile-cta-title">Create your BiteRush profile</h2>
+            <p className="profile-cta-sub">
+              Sign up to manage your orders, saved addresses, favorites, and faster checkout.
             </p>
 
-            <button
-              onClick={() => go("auth", { next: "profile" })}
-              className="cta auth-primary-btn"
-            >
-              Sign in
-            </button>
+            <div className="profile-cta-actions">
+              <button className="cta" onClick={goAuth}>
+                <UserPlus size={18} /> Sign up
+              </button>
+              <button className="profile-cta-secondary" onClick={goAuth}>
+                <LogIn size={18} /> Log in
+              </button>
+            </div>
 
-            <button
-              onClick={() => go("home")}
-              className="auth-secondary-btn"
-            >
-              Back to Home
-            </button>
+            <p className="profile-cta-note">
+              Already have an account?{" "}
+              <button className="profile-cta-link" onClick={goAuth}>Log in</button> to continue.
+            </p>
           </div>
         </div>
       </div>
