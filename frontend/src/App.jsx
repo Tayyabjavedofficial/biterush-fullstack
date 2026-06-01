@@ -26,10 +26,13 @@ export default function App() {
   };
   const afterAuth = (u) => go(landingFor(u?.role, nav.next));
 
+  // Refresh the catalog whenever the customer lands on Home/Search so newly
+  // added categories/foods (e.g. created by an admin) show up without a reload.
   useEffect(() => {
+    if (!["home", "search"].includes(nav.screen)) return;
     api.foods().then((d) => { if (Array.isArray(d) && d.length) setFoods(d); }).catch(() => {});
     api.categories().then((d) => { if (Array.isArray(d) && d.length) setCategories(d); }).catch(() => {});
-  }, []);
+  }, [nav.screen]);
 
   const selectedFood = nav.foodId != null ? foods.find((f) => f.id === nav.foodId) : null;
   const showNav = ["home", "cart", "orders", "profile", "search"].includes(nav.screen);

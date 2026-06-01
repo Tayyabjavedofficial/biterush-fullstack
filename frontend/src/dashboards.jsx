@@ -57,10 +57,22 @@ const SignOutRow = ({ logout, go }) => (
   </div>
 );
 
+const Bar = ({ label, value, max, suffix = "" }) => (
+  <div style={{ marginBottom: 9 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
+      <span style={{ color: "var(--muted)" }}>{label}</span>
+      <span style={{ fontWeight: 700 }}>{value}{suffix}</span>
+    </div>
+    <div style={{ height: 8, borderRadius: 6, background: "var(--glass-2)", overflow: "hidden" }}>
+      <div style={{ height: "100%", width: (max > 0 ? Math.max(6, (value / max) * 100) : 0) + "%", background: "var(--primary)", borderRadius: 6, transition: "width .4s ease" }} />
+    </div>
+  </div>
+);
+
 /* -------------------------------- Admin Dashboard -------------------------------- */
 export function AdminDashboard({ go, theme, setTheme }) {
   const { user, logout } = useAuth();
-  const [tab, setTab] = useState("orders");
+  const [tab, setTab] = useState("insights");
   const [stats, setStats] = useState({ totalOrders: 0, totalUsers: 0, totalRevenue: 0, totalRestaurants: 0 });
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
@@ -96,7 +108,22 @@ export function AdminDashboard({ go, theme, setTheme }) {
   };
   const delPromo = async (id) => { try { await api.deletePromo(id); load(); } catch (e) { setErr(e.message); } };
 
-  const TABS = [["orders", "Orders"], ["users", "Users"], ["restaurants", "Restaurants"], ["categories", "Categories"], ["promos", "Promos"]];
+  const TABS = [["insights", "Insights"], ["orders", "Orders"], ["users", "Users"], ["restaurants", "Restaurants"], ["categories", "Categories"], ["promos", "Promos"]];
+
+  // Analytics computed from the loaded data.
+  const statusList = ["PLACED", "PREPARING", "READY", "ON_THE_WAY", "DELIVERED", "CANCELLED"];
+  const byStatus = statusList.map((s) => ({ key: s, label: ORDER_LABELS[s], n: orders.filter((o) => o.status === s).length })).filter((x) => x.n > 0);
+  const roleList = [["customer", "Customers"], ["owner", "Owners"], ["delivery_rider", "Riders"], ["admin", "Admins"]];
+  const byRole = roleList.map(([r, label]) => ({ label, n: users.filter((u) => u.role === r).length })).filter((x) => x.n > 0);
+  const itemMap = {};
+  orders.forEach((o) => (o.items || []).forEach((it) => { itemMap[it.name] = (itemMap[it.name] || 0) + it.qty; }));
+  const topFoods = Object.entries(itemMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const paidCount = orders.filter((o) => o.payment_status === "paid").length;
+  const codCount = orders.filter((o) => o.payment_status === "cod").length;
+  const aov = orders.length ? orders.reduce((s, o) => s + o.total, 0) / orders.length : 0;
+  const maxStatus = Math.max(1, ...byStatus.map((x) => x.n));
+  const maxRole = Math.max(1, ...byRole.map((x) => x.n));
+  const maxFood = Math.max(1, ...topFoods.map(([, n]) => n));
 
   return (
     <div className="page">
@@ -115,6 +142,34 @@ export function AdminDashboard({ go, theme, setTheme }) {
           <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)} style={{ flex: "0 0 auto", padding: "10px 14px" }}>{label}</button>
         ))}
       </div>
+
+      {tab === "insights" && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {statCard("Avg order value", `$${aov.toFixed(2)}`)}
+            {statCard("Food items", stats.totalFoods ?? "—")}
+            {statCard("Paid online", paidCount)}
+            {statCard("Cash on delivery", codCount)}
+          </div>
+
+          <div className="glass" style={{ padding: 16, borderRadius: 16, marginBottom: 12 }}>
+            <h3 style={{ marginBottom: 12, fontSize: 15 }}>Orders by status</h3>
+            {byStatus.length === 0 ? <p style={{ color: "var(--muted)", fontSize: 13 }}>No orders yet.</p>
+              : byStatus.map((x) => <Bar key={x.key} label={x.label} value={x.n} max={maxStatus} />)}
+          </div>
+
+          <div className="glass" style={{ padding: 16, borderRadius: 16, marginBottom: 12 }}>
+            <h3 style={{ marginBottom: 12, fontSize: 15 }}>Users by role</h3>
+            {byRole.map((x) => <Bar key={x.label} label={x.label} value={x.n} max={maxRole} />)}
+          </div>
+
+          <div className="glass" style={{ padding: 16, borderRadius: 16, marginBottom: 4 }}>
+            <h3 style={{ marginBottom: 12, fontSize: 15 }}>Top ordered items</h3>
+            {topFoods.length === 0 ? <p style={{ color: "var(--muted)", fontSize: 13 }}>No sales yet.</p>
+              : topFoods.map(([name, n]) => <Bar key={name} label={name} value={n} max={maxFood} suffix=" sold" />)}
+          </div>
+        </>
+      )}
 
       {tab === "orders" && (orders.length === 0
         ? <p style={{ color: "var(--muted)", fontSize: 13 }}>No orders yet.</p>
