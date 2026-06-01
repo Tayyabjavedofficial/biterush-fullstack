@@ -13,6 +13,8 @@ router.post("/validate", authRequired, async (req, res) => {
   const sub = Number(subtotal) || 0;
   const promo = await PromoCode.findOne({ code: String(code || "").toUpperCase(), active: true });
   if (!promo) return res.status(404).json({ valid: false, error: "Invalid or expired code" });
+  if (promo.expires_at && new Date() > promo.expires_at)
+    return res.status(400).json({ valid: false, error: "This promo code has expired" });
   if (sub < promo.min_order)
     return res.status(400).json({ valid: false, error: `Minimum order $${promo.min_order} required` });
   let discount = promo.type === "percent" ? (sub * promo.value) / 100 : promo.value;
@@ -28,7 +30,7 @@ router.get("/", authRequired, requireRole("admin"), async (_req, res) => {
 
 // POST /api/promos — admin creates a code
 router.post("/", authRequired, requireRole("admin"), async (req, res) => {
-  const { code, type, value, min_order } = req.body || {};
+  const { code, type, value, min_order, expires_at } = req.body || {};
   if (!code || value == null) return res.status(400).json({ error: "code and value are required" });
   const exists = await PromoCode.findOne({ code: String(code).toUpperCase() });
   if (exists) return res.status(409).json({ error: "Code already exists" });
@@ -37,6 +39,7 @@ router.post("/", authRequired, requireRole("admin"), async (req, res) => {
     type: type === "flat" ? "flat" : "percent",
     value: Number(value),
     min_order: Number(min_order) || 0,
+    expires_at: expires_at ? new Date(expires_at) : null,
   });
   res.json(promo.toJSON());
 });

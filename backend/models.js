@@ -27,6 +27,7 @@ const userSchema = new Schema({
   restaurant_id: { type: Schema.Types.ObjectId, ref: "Restaurant", default: null },
   phone: { type: String, default: "" },
   address: { type: String, default: "" },
+  addresses: { type: [new Schema({ label: String, address: String, lat: Number, lng: Number }, { _id: false })], default: [] },
   picture: { type: String, default: "" },
   lat: { type: Number, default: null },
   lng: { type: Number, default: null },
@@ -75,6 +76,7 @@ const foodSchema = new Schema({
   fat: { type: Number, default: 0 },
   carbs: { type: Number, default: 0 },
   description: { type: String, default: "" },
+  available: { type: Boolean, default: true }, // owner can mark unavailable
   created_at: { type: Date, default: Date.now },
 });
 toJSON(foodSchema);
@@ -145,6 +147,7 @@ const promoSchema = new Schema({
   value: { type: Number, required: true },
   min_order: { type: Number, default: 0 },
   active: { type: Boolean, default: true },
+  expires_at: { type: Date, default: null }, // null = never expires
   created_at: { type: Date, default: Date.now },
 });
 toJSON(promoSchema);

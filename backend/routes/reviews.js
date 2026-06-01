@@ -1,6 +1,6 @@
 import { Router } from "express";
 import mongoose from "mongoose";
-import { Review, Food, Restaurant, User } from "../models.js";
+import { Review, Food, Restaurant, User, Order } from "../models.js";
 import { authRequired } from "../auth.js";
 
 const router = Router();
@@ -42,6 +42,15 @@ router.post("/", authRequired, async (req, res) => {
   if (!r || r < 1 || r > 5) return res.status(400).json({ error: "rating must be 1-5" });
   if (!food_id && !restaurant_id)
     return res.status(400).json({ error: "food_id or restaurant_id required" });
+
+  // FR-REV-001: only allow a review after the customer has a DELIVERED order
+  // for that food / restaurant.
+  const delivered = { user_id: req.user.id, status: "DELIVERED" };
+  if (food_id) delivered["items.food_id"] = String(food_id);
+  else if (restaurant_id) delivered.restaurant_id = restaurant_id;
+  const eligible = await Order.exists(delivered);
+  if (!eligible)
+    return res.status(403).json({ error: "You can review only after a delivered order." });
 
   const user = await User.findById(req.user.id);
   const review = await Review.create({

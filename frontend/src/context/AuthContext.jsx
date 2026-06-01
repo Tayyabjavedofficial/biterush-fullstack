@@ -41,8 +41,8 @@ export function AuthProvider({ children }) {
     return user;
   }
 
-  async function register(name, email, password, role = "customer") {
-    const { token, user } = await api.register({ name, email, password, role });
+  async function register(name, email, password, role = "customer", phone = "") {
+    const { token, user } = await api.register({ name, email, password, role, phone });
     localStorage.setItem("biterush_token", token);
     setToken(token);
     setUser(user);

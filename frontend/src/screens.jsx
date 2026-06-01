@@ -45,6 +45,7 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
   const [mode, setMode] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("customer");
   const [err, setErr] = useState("");
@@ -56,7 +57,7 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
     try {
       const u = mode === "login"
         ? await login(email, password)
-        : await register(name, email, password, role);
+        : await register(name, email, password, role, phone);
       onDone(u);
     } catch (e) {
       setErr(e.message || "Something went wrong");
@@ -87,8 +88,8 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
           <>
             <p className="auth-form-caption">Welcome back! Sign in to your account.</p>
             <div className="field">
-              <label>Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+              <label>Email or phone</label>
+              <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com or 03XXXXXXXXX" />
             </div>
             <div className="field">
               <label>Password</label>
@@ -107,8 +108,12 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
             </div>
             <div className="field">
+              <label>Phone</label>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="03XXXXXXXXX" />
+            </div>
+            <div className="field">
               <label>Password</label>
-              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" autoComplete="current-password" />
+              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" autoComplete="new-password" />
             </div>
             <div className="field">
               <label>Your role</label>
@@ -776,7 +781,16 @@ export function Checkout({ go, theme, setTheme }) {
   const [promoErr, setPromoErr] = useState("");
   const [card, setCard] = useState({ number: "", exp: "", cvv: "", name: "" });
   const [wallet, setWallet] = useState({ phone: "", pin: "" });
+  const [savedAddrs, setSavedAddrs] = useState([]);
   const [idemKey] = useState(() => "idem_" + randHex(12)); // one per checkout — prevents double-charge
+
+  useEffect(() => {
+    if (!user) return;
+    api.me().then((m) => {
+      setSavedAddrs(m.addresses || []);
+      setAddress((a) => a || m.address || "");
+    }).catch(() => {});
+  }, [user]);
 
   const delivery = items.length ? DELIVERY_FEE : 0;
   const discount = applied?.discount || 0;
@@ -896,6 +910,15 @@ export function Checkout({ go, theme, setTheme }) {
       {err && <div className="err">{err}</div>}
 
       <h3 style={{ fontFamily: "var(--font-display)", margin: "4px 2px 12px", fontSize: 16 }}>Delivery address</h3>
+      {savedAddrs.length > 0 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          {savedAddrs.map((a, i) => (
+            <button key={i} className="chip" onClick={() => setAddress(a.address)}>
+              <MapPin size={13} /> {a.label || a.address.slice(0, 24)}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="field">
         <textarea value={address} onChange={(e) => setAddress(e.target.value)} placeholder="House, street, area, city…" />
       </div>
@@ -1177,7 +1200,10 @@ export function Search({ go, theme, setTheme }) {
 }
 
 function RestaurantDetail({ restaurant, userLoc, user, onBack, go }) {
+  const { add } = useCart();
   const [reviews, setReviews] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [addedId, setAddedId] = useState(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1185,7 +1211,12 @@ function RestaurantDetail({ restaurant, userLoc, user, onBack, go }) {
   const dist = distKm(userLoc, restaurant);
 
   const load = () => api.reviews({ restaurant: restaurant.id }).then(setReviews).catch(() => setReviews([]));
-  useEffect(() => { load(); }, [restaurant.id]);
+  useEffect(() => {
+    load();
+    api.restaurantFoods(restaurant.id).then((f) => setMenu(f.filter((x) => x.available !== false))).catch(() => setMenu([]));
+  }, [restaurant.id]);
+
+  const addItem = (f) => { add(f, 1); setAddedId(f.id); setTimeout(() => setAddedId(null), 1200); };
 
   const submit = async () => {
     setErr(""); setBusy(true);
@@ -1211,6 +1242,25 @@ function RestaurantDetail({ restaurant, userLoc, user, onBack, go }) {
 
       {/* Map + route to the restaurant */}
       <LocationMap key={restaurant.id} value={{ lat: restaurant.lat, lng: restaurant.lng }} editing={false} onChange={() => {}} />
+
+      {/* Menu items */}
+      <h3 style={{ margin: "20px 0 12px", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16 }}>Menu</h3>
+      {menu === null ? (
+        <div className="loading">Loading menu…</div>
+      ) : menu.length === 0 ? (
+        <p style={{ color: "var(--muted)", fontSize: 13 }}>This restaurant hasn't published its menu yet.</p>
+      ) : (
+        menu.map((f) => (
+          <div key={f.id} className="glass" style={{ padding: 12, borderRadius: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontSize: 28 }}>{f.emoji}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.name}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>${f.price.toFixed(2)}</div>
+            </div>
+            <button className="add" onClick={() => addItem(f)} title="Add to cart">{addedId === f.id ? <Check size={16} /> : <Plus size={18} />}</button>
+          </div>
+        ))
+      )}
 
       {/* Reviews */}
       <h3 style={{ margin: "20px 0 12px", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16 }}>

@@ -7,6 +7,7 @@ import {
 import { useAuth } from "./context/AuthContext";
 import { ThemeToggle } from "./components.jsx";
 import { LocationMap } from "./LocationMap.jsx";
+import { api } from "./api.js";
 
 const FRAME = 256; // crop viewport + output size
 
@@ -21,6 +22,8 @@ export function ProfileScreen({ go, theme, setTheme }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState("");
+  const [addresses, setAddresses] = useState([]);
+  const [addrLabel, setAddrLabel] = useState("");
 
   // photo-crop modal state
   const [cropSrc, setCropSrc] = useState(null);
@@ -44,6 +47,7 @@ export function ProfileScreen({ go, theme, setTheme }) {
           address: data.address || "", role: data.role || "customer", picture: data.picture || "",
           lat: data.lat ?? null, lng: data.lng ?? null,
         });
+        setAddresses(data.addresses || []);
       } catch (e) {
         console.error("Failed to fetch profile:", e);
       } finally {
@@ -126,6 +130,18 @@ export function ProfileScreen({ go, theme, setTheme }) {
     };
     img.src = cropSrc;
   };
+
+  const persistAddresses = async (list) => {
+    setAddresses(list);
+    try { await api.updateMe({ addresses: list }); } catch (e) { setErr(e.message); }
+  };
+  const saveCurrentAddress = () => {
+    if (!formData.address.trim()) { setErr("Set a delivery address/location first."); return; }
+    setErr("");
+    persistAddresses([...addresses, { label: addrLabel.trim() || "Address", address: formData.address, lat: formData.lat, lng: formData.lng }]);
+    setAddrLabel("");
+  };
+  const removeAddress = (i) => persistAddresses(addresses.filter((_, idx) => idx !== i));
 
   const handleSave = async () => {
     setSaving(true); setErr(""); setSaved(false);
@@ -308,6 +324,28 @@ export function ProfileScreen({ go, theme, setTheme }) {
               No saved location yet. Tap <b>Edit profile</b>, then search or use your live location.
             </p>
           )}
+        </div>
+      </div>
+
+      {/* Saved addresses */}
+      <div className="profile-section">
+        <h3>Saved addresses</h3>
+        <div className="glass profile-card">
+          {addresses.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 12 }}>No saved addresses yet. Set a location above, label it, and save it for faster checkout.</p>}
+          {addresses.map((a, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border-soft)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{a.label}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.address}</div>
+              </div>
+              <button className="icon-btn" onClick={() => removeAddress(i)} title="Remove"><X size={15} /></button>
+            </div>
+          ))}
+          <div className="field" style={{ marginTop: 12, marginBottom: 10 }}>
+            <label>Label this address (e.g. Home, Work)</label>
+            <input value={addrLabel} onChange={(e) => setAddrLabel(e.target.value)} placeholder="Home" />
+          </div>
+          <button className="profile-cta-secondary" onClick={saveCurrentAddress}>Save current address</button>
         </div>
       </div>
 

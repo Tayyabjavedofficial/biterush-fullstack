@@ -44,6 +44,7 @@ export const api = {
   food: (id) => request("/foods/" + id),
 
   // ---- owner: food management ----
+  myFoods: () => request("/foods/mine", { auth: true }),
   createFood: (b) => request("/foods", { method: "POST", body: b, auth: true }),
   updateFood: (id, b) => request("/foods/" + id, { method: "PUT", body: b, auth: true }),
   deleteFood: (id) => request("/foods/" + id, { method: "DELETE", auth: true }),

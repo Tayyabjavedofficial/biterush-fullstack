@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package, MessageCircle, Check } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package, MessageCircle, Check, Save, Pencil } from "lucide-react";
 import { ThemeToggle, PasswordInput } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { api } from "./api.js";
@@ -82,7 +82,7 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const [err, setErr] = useState("");
   const [newRest, setNewRest] = useState({ name: "", address: "", cuisine: "", image: "🍽️" });
   const [newCat, setNewCat] = useState({ name: "", emoji: "" });
-  const [newPromo, setNewPromo] = useState({ code: "", type: "percent", value: "", min_order: "" });
+  const [newPromo, setNewPromo] = useState({ code: "", type: "percent", value: "", min_order: "", expires_at: "" });
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState(null);
   const [pwBusy, setPwBusy] = useState(false);
@@ -108,7 +108,7 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const setApproved = async (id, approved) => { try { await api.updateRestaurant(id, { approved }); load(); } catch (e) { setErr(e.message); } };
   const addPromo = async () => {
     if (!newPromo.code || newPromo.value === "") { setErr("Promo code and value are required"); return; }
-    try { await api.createPromo({ ...newPromo, value: Number(newPromo.value), min_order: Number(newPromo.min_order) || 0 }); setNewPromo({ code: "", type: "percent", value: "", min_order: "" }); setErr(""); load(); }
+    try { await api.createPromo({ ...newPromo, value: Number(newPromo.value), min_order: Number(newPromo.min_order) || 0, expires_at: newPromo.expires_at || null }); setNewPromo({ code: "", type: "percent", value: "", min_order: "", expires_at: "" }); setErr(""); load(); }
     catch (e) { setErr(e.message); }
   };
   const delPromo = async (id) => { try { await api.deletePromo(id); load(); } catch (e) { setErr(e.message); } };
@@ -304,6 +304,10 @@ export function AdminDashboard({ go, theme, setTheme }) {
               <input className="dash-input" type="number" value={newPromo.value} onChange={(e) => setNewPromo({ ...newPromo, value: e.target.value })} placeholder={newPromo.type === "percent" ? "10 (%)" : "5 ($)"} style={{ flex: 1 }} />
               <input className="dash-input" type="number" value={newPromo.min_order} onChange={(e) => setNewPromo({ ...newPromo, min_order: e.target.value })} placeholder="Min order $" style={{ flex: 1 }} />
             </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 12 }}>Expiry (optional)</label>
+              <input className="dash-input" type="date" value={newPromo.expires_at} onChange={(e) => setNewPromo({ ...newPromo, expires_at: e.target.value })} />
+            </div>
             <button className="cta" onClick={addPromo}><Plus size={16} /> Add promo code</button>
           </div>
           {promos.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>No promo codes yet.</p>}
@@ -313,6 +317,7 @@ export function AdminDashboard({ go, theme, setTheme }) {
                 <div style={{ fontWeight: 800, fontFamily: "var(--font-display)" }}>{p.code}</div>
                 <div style={{ fontSize: 12, color: "var(--muted)" }}>
                   {p.type === "percent" ? `${p.value}% off` : `$${p.value} off`}{p.min_order > 0 ? ` · min $${p.min_order}` : ""}
+                  {p.expires_at ? ` · expires ${new Date(p.expires_at).toLocaleDateString()}` : ""}
                 </div>
               </div>
               <button className="icon-btn" onClick={() => delPromo(p.id)}><Trash2 size={16} /></button>
@@ -361,14 +366,17 @@ export function OwnerDashboard({ go, theme, setTheme }) {
   const [err, setErr] = useState("");
   const [chatOrder, setChatOrder] = useState(null);
   const [form, setForm] = useState({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" });
+  const [editId, setEditId] = useState(null);
+  const [rform, setRform] = useState(null);
 
   const load = async () => {
     try {
-      const [o, allFoods, c, r, rd] = await Promise.all([api.restaurantOrders(), api.foods(), api.categories(), api.myRestaurant(), api.riders()]);
+      const [o, myFoods, c, r, rd] = await Promise.all([api.restaurantOrders(), api.myFoods(), api.categories(), api.myRestaurant(), api.riders()]);
       setOrders(o);
-      setFoods(allFoods.filter((f) => String(f.owner_id) === String(user.id)));
+      setFoods(myFoods);
       setCategories(c);
       setRestaurant(r);
+      if (r) setRform({ name: r.name || "", cuisine: r.cuisine || "", address: r.address || "", phone: r.phone || "", image: r.image || "🍽️" });
       setRiders(rd);
     } catch (e) { setErr(e.message); }
   };
@@ -379,12 +387,27 @@ export function OwnerDashboard({ go, theme, setTheme }) {
   const revenue = Math.round(orders.filter((o) => o.status !== "CANCELLED").reduce((s, o) => s + o.total, 0) * 100) / 100;
   const setStatus = async (id, status) => { try { await api.updateOrderStatus(id, status); load(); } catch (e) { setErr(e.message); } };
   const assign = async (id) => { if (!assignSel[id]) return; try { await api.assignRider(id, assignSel[id]); load(); } catch (e) { setErr(e.message); } };
-  const addFood = async () => {
+  const resetForm = () => { setForm({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" }); setEditId(null); };
+  const saveFood = async () => {
     if (!form.name || form.price === "") { setErr("Name and price are required"); return; }
-    try { await api.createFood({ ...form, price: Number(form.price) }); setForm({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" }); setErr(""); load(); }
-    catch (e) { setErr(e.message); }
+    try {
+      const body = { ...form, price: Number(form.price) };
+      if (editId) await api.updateFood(editId, body);
+      else await api.createFood(body);
+      resetForm(); setErr(""); load();
+    } catch (e) { setErr(e.message); }
+  };
+  const editFood = (f) => {
+    setForm({ name: f.name, category: f.category || "", price: f.price, description: f.description || "", emoji: f.emoji || "🍔", img: f.img || "" });
+    setEditId(f.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const delFood = async (id) => { try { await api.deleteFood(id); load(); } catch (e) { setErr(e.message); } };
+  const toggleAvail = async (f) => { try { await api.updateFood(f.id, { available: f.available === false }); load(); } catch (e) { setErr(e.message); } };
+  const saveRestaurant = async () => {
+    if (!restaurant) return;
+    try { await api.updateRestaurant(restaurant.id, rform); setErr(""); load(); } catch (e) { setErr(e.message); }
+  };
 
   return (
     <div className="page">
@@ -440,7 +463,23 @@ export function OwnerDashboard({ go, theme, setTheme }) {
         </div>
       ))}
 
-      <h3 style={{ margin: "22px 0 12px" }}>Add Food Item</h3>
+      {rform && (
+        <>
+          <h3 style={{ margin: "22px 0 12px" }}>Restaurant Profile</h3>
+          <div className="glass" style={{ padding: 16, borderRadius: 16, marginBottom: 18 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input className="dash-input" value={rform.image} onChange={(e) => setRform({ ...rform, image: e.target.value })} placeholder="🍔" style={{ width: 60, textAlign: "center" }} />
+              <input className="dash-input" value={rform.name} onChange={(e) => setRform({ ...rform, name: e.target.value })} placeholder="Restaurant name" style={{ flex: 1 }} />
+            </div>
+            <div className="field" style={{ marginBottom: 8 }}><input value={rform.cuisine} onChange={(e) => setRform({ ...rform, cuisine: e.target.value })} placeholder="Cuisine (e.g. Italian, Pizza)" /></div>
+            <div className="field" style={{ marginBottom: 8 }}><input value={rform.address} onChange={(e) => setRform({ ...rform, address: e.target.value })} placeholder="Address / area" /></div>
+            <div className="field" style={{ marginBottom: 10 }}><input value={rform.phone} onChange={(e) => setRform({ ...rform, phone: e.target.value })} placeholder="Phone" /></div>
+            <button className="cta" onClick={saveRestaurant}><Save size={16} /> Save restaurant profile</button>
+          </div>
+        </>
+      )}
+
+      <h3 style={{ margin: "22px 0 12px" }}>{editId ? "Edit Food Item" : "Add Food Item"}</h3>
       <div className="glass" style={{ padding: 16, borderRadius: 16, marginBottom: 18 }}>
         <div className="field" style={{ marginBottom: 10 }}><label>Name</label>
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Double Cheeseburger" /></div>
@@ -461,19 +500,32 @@ export function OwnerDashboard({ go, theme, setTheme }) {
           <div className="field" style={{ flex: 1, marginBottom: 12 }}><label>Image URL (optional)</label>
             <input value={form.img} onChange={(e) => setForm({ ...form, img: e.target.value })} placeholder="https://…" /></div>
         </div>
-        <button className="cta" onClick={addFood}><Plus size={16} /> Add to menu</button>
+        {editId
+          ? <div style={{ display: "flex", gap: 8 }}>
+              <button className="cta" style={{ flex: 1 }} onClick={saveFood}><Save size={16} /> Save changes</button>
+              <button className="profile-cta-secondary" onClick={resetForm}>Cancel</button>
+            </div>
+          : <button className="cta" onClick={saveFood}><Plus size={16} /> Add to menu</button>}
       </div>
 
       <h3 style={{ marginBottom: 12 }}>My Menu ({foods.length})</h3>
       {foods.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>No items yet — add your first dish above.</p>}
       {foods.map((f) => (
-        <div key={f.id} className="glass" style={{ padding: 12, borderRadius: 16, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 26 }}>{f.emoji}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.name}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>{f.category || "—"} · ${f.price}</div>
+        <div key={f.id} className="glass" style={{ padding: 12, borderRadius: 16, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontSize: 26 }}>{f.emoji}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {f.name} {f.available === false && <span style={{ color: "#ef4444", fontSize: 11 }}>· Unavailable</span>}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>{f.category || "—"} · ${f.price}</div>
+            </div>
+            <button className="icon-btn" title="Edit" onClick={() => editFood(f)}><Pencil size={15} /></button>
+            <button className="icon-btn" title="Delete" onClick={() => delFood(f.id)}><Trash2 size={16} /></button>
           </div>
-          <button className="icon-btn" onClick={() => delFood(f.id)}><Trash2 size={16} /></button>
+          <button className={f.available === false ? "cta" : "profile-cta-secondary"} style={{ marginTop: 10, width: "100%" }} onClick={() => toggleAvail(f)}>
+            {f.available === false ? "Set available" : "Set unavailable"}
+          </button>
         </div>
       ))}
 

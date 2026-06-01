@@ -8,7 +8,7 @@ const router = Router();
 const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role });
 
 router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body || {};
+  const { name, email, password, role, phone } = req.body || {};
   if (!name || !email || !password)
     return res.status(400).json({ error: "name, email and password are required" });
   if (password.length < 4)
@@ -23,7 +23,7 @@ router.post("/register", async (req, res) => {
   if (exists) return res.status(409).json({ error: "Email already registered" });
 
   const hash = bcrypt.hashSync(password, 10);
-  const user = await User.create({ name, email, password: hash, role: wantRole });
+  const user = await User.create({ name, email, password: hash, role: wantRole, phone: phone || "" });
 
   // Owners get a restaurant created automatically so they can manage a menu.
   if (wantRole === "owner") {
@@ -37,9 +37,11 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body || {};
-  const user = await User.findOne({ email: (email || "").toLowerCase() });
+  // `email` is the identifier — match against email OR phone (FR-AUTH-003).
+  const id = (email || "").trim();
+  const user = await User.findOne({ $or: [{ email: id.toLowerCase() }, { phone: id }] });
   if (!user || !bcrypt.compareSync(password || "", user.password))
-    return res.status(401).json({ error: "Invalid email or password" });
+    return res.status(401).json({ error: "Invalid email/phone or password" });
   if (user.blocked) return res.status(403).json({ error: "Your account has been blocked. Contact support." });
 
   res.json({ token: signToken(user), user: publicUser(user) });
@@ -52,7 +54,7 @@ router.get("/me", authRequired, async (req, res) => {
 });
 
 router.put("/me", authRequired, async (req, res) => {
-  const { name, phone, address, picture, lat, lng, pubkey } = req.body || {};
+  const { name, phone, address, picture, lat, lng, pubkey, addresses } = req.body || {};
   const user = await User.findById(req.user.id);
   if (!user) return res.status(404).json({ error: "User not found" });
   // Role is intentionally NOT self-editable here; admins manage roles.
@@ -60,6 +62,11 @@ router.put("/me", authRequired, async (req, res) => {
   if (phone !== undefined) user.phone = phone;
   if (address !== undefined) user.address = address;
   if (picture !== undefined) user.picture = picture;
+  if (Array.isArray(addresses)) {
+    user.addresses = addresses
+      .filter((a) => a && a.address)
+      .map((a) => ({ label: a.label || "", address: a.address, lat: a.lat ?? null, lng: a.lng ?? null }));
+  }
   if (lat !== undefined) user.lat = lat === null ? null : Number(lat);
   if (lng !== undefined) user.lng = lng === null ? null : Number(lng);
   if (pubkey !== undefined) user.pubkey = pubkey; // E2E chat public key (JWK)

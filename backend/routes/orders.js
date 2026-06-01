@@ -44,7 +44,8 @@ router.post("/", authRequired, requireRole("customer"), async (req, res) => {
   let appliedCode = "";
   if (promo_code) {
     const promo = await PromoCode.findOne({ code: String(promo_code).toUpperCase(), active: true });
-    if (promo && subtotal >= promo.min_order) {
+    const expired = promo?.expires_at && new Date() > promo.expires_at;
+    if (promo && !expired && subtotal >= promo.min_order) {
       discount = promo.type === "percent" ? (subtotal * promo.value) / 100 : promo.value;
       discount = round2(Math.min(discount, subtotal));
       appliedCode = promo.code;

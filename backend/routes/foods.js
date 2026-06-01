@@ -5,13 +5,19 @@ import { authRequired, requireRole } from "../auth.js";
 
 const router = Router();
 
-// GET /api/foods?category=&q=  — public listing with filters
+// GET /api/foods?category=&q=  — public listing (only available items)
 router.get("/", async (req, res) => {
   const { category, q } = req.query;
-  const filter = {};
+  const filter = { available: { $ne: false } };
   if (category && category !== "All") filter.category = category;
-  if (q) filter.$or = [{ name: new RegExp(q, "i") }, { restaurant: new RegExp(q, "i") }];
+  if (q) filter.$and = [{ $or: [{ name: new RegExp(q, "i") }, { restaurant: new RegExp(q, "i") }] }];
   const foods = await Food.find(filter).sort({ created_at: -1 });
+  res.json(foods.map((f) => f.toJSON()));
+});
+
+// GET /api/foods/mine — owner's own foods (including unavailable)
+router.get("/mine", authRequired, requireRole("owner", "admin"), async (req, res) => {
+  const foods = await Food.find({ owner_id: req.user.id }).sort({ created_at: -1 });
   res.json(foods.map((f) => f.toJSON()));
 });
 
@@ -60,7 +66,7 @@ router.put("/:id", authRequired, requireRole("owner", "admin"), async (req, res)
   if (req.user.role === "owner" && String(food.owner_id) !== req.user.id)
     return res.status(403).json({ error: "Not your food item" });
 
-  const editable = ["name", "category", "price", "emoji", "img", "description", "time", "distance", "rating", "kcal", "protein", "fat", "carbs"];
+  const editable = ["name", "category", "price", "emoji", "img", "description", "time", "distance", "rating", "kcal", "protein", "fat", "carbs", "available"];
   for (const k of editable) if (req.body[k] !== undefined) food[k] = req.body[k];
   await food.save();
   res.json(food.toJSON());
