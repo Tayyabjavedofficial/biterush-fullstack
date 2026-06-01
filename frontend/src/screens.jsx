@@ -1015,6 +1015,11 @@ export function Orders({ go, theme, setTheme }) {
     );
   }
 
+  // Only the most-recent still-in-progress order shows the live tracking timeline.
+  const activeId = Array.isArray(orders)
+    ? orders.find((o) => !["DELIVERED", "CANCELLED"].includes(o.status))?.id
+    : null;
+
   return (
     <div className="page">
       <div className="page-head"><h1>Your Orders</h1><ThemeToggle theme={theme} setTheme={setTheme} /></div>
@@ -1043,7 +1048,7 @@ export function Orders({ go, theme, setTheme }) {
               </div>
             )}
             <div className="order-foot"><span>Total</span><span>${o.total.toFixed(2)}</span></div>
-            <OrderTimeline status={o.status} />
+            {o.id === activeId && <OrderTimeline status={o.status} />}
             <div className="order-date" style={{ marginTop: 10 }}>{new Date(o.created_at).toLocaleString()} · {o.payment}</div>
             <button className="order-chat-btn" onClick={() => setChatOrder(o.id)}>
               <MessageCircle size={16} /> Chat with restaurant
