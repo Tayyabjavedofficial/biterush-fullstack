@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { api } from "../api.js";
+import { getKeypair } from "../crypto.js";
 
 const AuthCtx = createContext(null);
 
@@ -20,6 +21,17 @@ export function AuthProvider({ children }) {
       setReady(true);
     }
   }, []);
+
+  // Publish this device's E2E chat public key once signed in (private key stays local).
+  useEffect(() => {
+    if (!user || !token) return;
+    (async () => {
+      try {
+        const { pubJwk } = await getKeypair();
+        await api.updateMe({ pubkey: JSON.stringify(pubJwk) });
+      } catch { /* non-fatal */ }
+    })();
+  }, [user, token]);
 
   async function login(email, password) {
     const { token, user } = await api.login({ email, password });

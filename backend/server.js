@@ -17,6 +17,7 @@ import reviewRoutes from "./routes/reviews.js";
 import promoRoutes from "./routes/promos.js";
 import cartRoutes from "./routes/cart.js";
 import adminRoutes from "./routes/admin.js";
+import messageRoutes from "./routes/messages.js";
 
 const app = express();
 app.use(cors());
@@ -45,6 +46,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/promos", promoRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Error fallback so unhandled async errors return JSON, not an HTML stack.
 app.use((err, _req, res, _next) => {

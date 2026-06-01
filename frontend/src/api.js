@@ -82,6 +82,10 @@ export const api = {
   getCart: () => request("/cart", { auth: true }),
   saveCart: (items) => request("/cart", { method: "PUT", body: { items }, auth: true }),
 
+  // ---- encrypted chat ----
+  getMessages: (orderId) => request("/messages/" + orderId, { auth: true }),
+  sendMessage: (orderId, body) => request("/messages/" + orderId, { method: "POST", body, auth: true }),
+
   // ---- admin ----
   adminStats: () => request("/admin/stats", { auth: true }),
   adminUsers: () => request("/admin/users", { auth: true }),

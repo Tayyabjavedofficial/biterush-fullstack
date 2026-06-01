@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package, MessageCircle } from "lucide-react";
 import { ThemeToggle } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { api } from "./api.js";
+import { OrderChat } from "./OrderChat.jsx";
 
 /* shared bits ------------------------------------------------------------- */
 function DashHead({ title, go, theme, setTheme }) {
@@ -186,6 +187,7 @@ export function OwnerDashboard({ go, theme, setTheme }) {
   const [foods, setFoods] = useState([]);
   const [categories, setCategories] = useState([]);
   const [err, setErr] = useState("");
+  const [chatOrder, setChatOrder] = useState(null);
   const [form, setForm] = useState({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" });
 
   const load = async () => {
@@ -232,6 +234,9 @@ export function OwnerDashboard({ go, theme, setTheme }) {
           {next[o.status]
             ? <button className="cta" onClick={() => advance(o)}>{o.status === "PLACED" ? "Start preparing" : "Mark ready"}</button>
             : <span style={{ fontSize: 12, color: "var(--muted)" }}>{o.status === "READY" ? "Awaiting rider pickup" : ORDER_LABELS[o.status]}</span>}
+          <button className="order-chat-btn" onClick={() => setChatOrder(o.id)}>
+            <MessageCircle size={16} /> Chat with customer
+          </button>
         </div>
       ))}
 
@@ -273,6 +278,7 @@ export function OwnerDashboard({ go, theme, setTheme }) {
       ))}
 
       <SignOutRow logout={logout} go={go} />
+      {chatOrder && <OrderChat orderId={chatOrder} onClose={() => setChatOrder(null)} />}
     </div>
   );
 }

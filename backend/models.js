@@ -30,6 +30,7 @@ const userSchema = new Schema({
   picture: { type: String, default: "" },
   lat: { type: Number, default: null },
   lng: { type: Number, default: null },
+  pubkey: { type: String, default: "" }, // ECDH public key (JWK string) for E2E chat
   created_at: { type: Date, default: Date.now },
 });
 toJSON(userSchema);
@@ -140,8 +141,23 @@ const cartSchema = new Schema({
 });
 toJSON(cartSchema);
 
+// Encrypted chat messages. The server only ever stores ciphertext + iv — it
+// cannot read the content (no access to the participants' private keys).
+const messageSchema = new Schema({
+  order_id: { type: Schema.Types.ObjectId, ref: "Order", required: true, index: true },
+  sender_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  sender_name: { type: String, default: "" },
+  type: { type: String, enum: ["text", "voice"], default: "text" },
+  ciphertext: { type: String, required: true },
+  iv: { type: String, required: true },
+  mime: { type: String, default: "" },
+  created_at: { type: Date, default: Date.now },
+});
+toJSON(messageSchema);
+
 // Guard against model re-compilation on warm serverless invocations.
 export const User = models.User || model("User", userSchema);
+export const Message = models.Message || model("Message", messageSchema);
 export const Category = models.Category || model("Category", categorySchema);
 export const Restaurant = models.Restaurant || model("Restaurant", restaurantSchema);
 export const Food = models.Food || model("Food", foodSchema);

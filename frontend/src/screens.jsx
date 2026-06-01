@@ -11,6 +11,7 @@ import { useAuth } from "./context/AuthContext.jsx";
 import { useCart } from "./context/CartContext.jsx";
 import { api } from "./api.js";
 import { RESTAURANTS } from "./data.js";
+import { OrderChat } from "./OrderChat.jsx";
 
 const DELIVERY_FEE = 2.99;
 
@@ -888,6 +889,7 @@ export function Orders({ go, theme, setTheme }) {
   const { user } = useAuth();
   const [orders, setOrders] = useState(null);
   const [err, setErr] = useState("");
+  const [chatOrder, setChatOrder] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -933,9 +935,13 @@ export function Orders({ go, theme, setTheme }) {
             <div className="order-foot"><span>Total</span><span>${o.total.toFixed(2)}</span></div>
             <OrderTimeline status={o.status} />
             <div className="order-date" style={{ marginTop: 10 }}>{new Date(o.created_at).toLocaleString()} · {o.payment}</div>
+            <button className="order-chat-btn" onClick={() => setChatOrder(o.id)}>
+              <MessageCircle size={16} /> Chat with restaurant
+            </button>
           </div>
         ))
       )}
+      {chatOrder && <OrderChat orderId={chatOrder} onClose={() => setChatOrder(null)} />}
     </div>
   );
 }
