@@ -38,8 +38,8 @@ const statCard = (label, value) => (
 );
 
 const ORDER_LABELS = {
-  PENDING: "Pending", PREPARING: "Preparing", READY: "Ready",
-  ON_THE_WAY: "On the way", DELIVERED: "Delivered", CANCELLED: "Cancelled",
+  PENDING: "Pending", ACCEPTED: "Accepted", PREPARING: "Preparing", READY: "Ready",
+  ON_THE_WAY: "Out for delivery", DELIVERED: "Delivered", CANCELLED: "Cancelled",
 };
 const statusPill = (label, active) => (
   <span style={{
@@ -103,6 +103,7 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const delUser = async (id) => { try { await api.deleteUser(id); load(); } catch (e) { setErr(e.message); } };
   const toggleBlock = async (id, blocked) => { try { await api.updateUser(id, { blocked }); load(); } catch (e) { setErr(e.message); } };
   const setOrderStatus = async (id, status) => { try { await api.updateOrderStatus(id, status); load(); } catch (e) { setErr(e.message); } };
+  const assignRiderTo = async (id, rid) => { if (!rid) return; try { await api.assignRider(id, rid); load(); } catch (e) { setErr(e.message); } };
   const addRest = async () => { if (!newRest.name) return; try { await api.createRestaurant(newRest); setNewRest({ name: "", address: "", cuisine: "", image: "🍽️" }); load(); } catch (e) { setErr(e.message); } };
   const delRest = async (id) => { try { await api.deleteRestaurant(id); load(); } catch (e) { setErr(e.message); } };
   const setApproved = async (id, approved) => { try { await api.updateRestaurant(id, { approved }); load(); } catch (e) { setErr(e.message); } };
@@ -207,10 +208,16 @@ export function AdminDashboard({ go, theme, setTheme }) {
               <strong>Order #{o.id.slice(-5)}</strong>
               <span style={{ fontWeight: 700 }}>${o.total}</span>
             </div>
-            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>{o.items?.length || 0} item(s) · {o.payment}</div>
-            <select className="dash-select" value={o.status} onChange={(e) => setOrderStatus(o.id, e.target.value)}>
-              {Object.entries(ORDER_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>{o.items?.length || 0} item(s) · {o.payment}{o.rider_id ? " · rider assigned" : ""}</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <select className="dash-select" style={{ flex: 1 }} value={o.status} onChange={(e) => setOrderStatus(o.id, e.target.value)}>
+                {Object.entries(ORDER_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+              <select className="dash-select" style={{ flex: 1 }} value="" onChange={(e) => assignRiderTo(o.id, e.target.value)}>
+                <option value="">{o.rider_id ? "Reassign rider…" : "Assign rider…"}</option>
+                {users.filter((u) => u.role === "delivery_rider").map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
           </div>
         )))}
 
@@ -437,9 +444,12 @@ export function OwnerDashboard({ go, theme, setTheme }) {
 
           {o.status === "PENDING" && (
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="cta" style={{ flex: 1 }} onClick={() => setStatus(o.id, "PREPARING")}><Check size={16} /> Accept</button>
+              <button className="cta" style={{ flex: 1 }} onClick={() => setStatus(o.id, "ACCEPTED")}><Check size={16} /> Accept</button>
               <button className="profile-cta-secondary btn-danger" style={{ flex: 1 }} onClick={() => setStatus(o.id, "CANCELLED")}>Reject</button>
             </div>
+          )}
+          {o.status === "ACCEPTED" && (
+            <button className="cta" onClick={() => setStatus(o.id, "PREPARING")}>Start preparing</button>
           )}
           {o.status === "PREPARING" && (
             <button className="cta" onClick={() => setStatus(o.id, "READY")}>Mark ready for pickup</button>

@@ -1042,9 +1042,10 @@ export function Checkout({ go, theme, setTheme }) {
 /* Simulated order-status timeline */
 const ORDER_STEPS = [
   { key: "PENDING", label: "Order placed" },
+  { key: "ACCEPTED", label: "Accepted by restaurant" },
   { key: "PREPARING", label: "Preparing your food" },
   { key: "READY", label: "Ready for pickup" },
-  { key: "ON_THE_WAY", label: "On the way" },
+  { key: "ON_THE_WAY", label: "Out for delivery" },
   { key: "DELIVERED", label: "Delivered" },
 ];
 function OrderTimeline({ status }) {
@@ -1101,10 +1102,9 @@ export function Orders({ go, theme, setTheme }) {
   const [err, setErr] = useState("");
   const [chatOrder, setChatOrder] = useState(null);
 
-  useEffect(() => {
-    if (!user) return;
-    api.orders().then(setOrders).catch((e) => setErr(e.message));
-  }, [user]);
+  const reload = () => api.orders().then(setOrders).catch((e) => setErr(e.message));
+  useEffect(() => { if (user) reload(); /* eslint-disable-next-line */ }, [user]);
+  const cancelOrder = async (id) => { try { await api.cancelOrder(id); reload(); } catch (e) { setErr(e.message); } };
 
   if (!user) {
     return (
@@ -1154,6 +1154,11 @@ export function Orders({ go, theme, setTheme }) {
             <button className="order-chat-btn" onClick={() => setChatOrder(o.id)}>
               <MessageCircle size={16} /> Chat with restaurant
             </button>
+            {["PENDING", "ACCEPTED"].includes(o.status) && (
+              <button className="order-chat-btn" style={{ borderColor: "rgba(239,68,68,.4)", color: "#ef4444" }} onClick={() => cancelOrder(o.id)}>
+                Cancel order
+              </button>
+            )}
           </div>
         ))
       )}

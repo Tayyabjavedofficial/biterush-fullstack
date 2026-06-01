@@ -103,6 +103,23 @@ router.get("/", authRequired, async (req, res) => {
   res.json(out);
 });
 
+// PUT /api/orders/:id/cancel — customer cancels own order (before it's prepared)
+router.put("/:id/cancel", authRequired, async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id))
+    return res.status(404).json({ error: "Order not found" });
+  const order = await Order.findById(req.params.id);
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  const isOwnerCustomer = String(order.user_id) === req.user.id;
+  if (!isOwnerCustomer && req.user.role !== "admin")
+    return res.status(403).json({ error: "Not your order" });
+  if (!["PENDING", "ACCEPTED"].includes(order.status))
+    return res.status(400).json({ error: "This order can no longer be cancelled" });
+  order.status = "CANCELLED";
+  order.status_history.push({ status: "CANCELLED", at: new Date() });
+  await order.save();
+  res.json(order.toJSON());
+});
+
 // GET /api/orders/restaurant — owner's restaurant orders
 router.get("/restaurant", authRequired, requireRole("owner", "admin"), async (req, res) => {
   const owner = await User.findById(req.user.id);

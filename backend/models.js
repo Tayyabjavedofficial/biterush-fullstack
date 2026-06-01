@@ -16,7 +16,7 @@ function toJSON(schema) {
 }
 
 export const ROLES = ["customer", "owner", "delivery_rider", "admin"];
-export const ORDER_STATUSES = ["PENDING", "PREPARING", "READY", "ON_THE_WAY", "DELIVERED", "CANCELLED"];
+export const ORDER_STATUSES = ["PENDING", "ACCEPTED", "PREPARING", "READY", "ON_THE_WAY", "DELIVERED", "CANCELLED"];
 export const DELIVERY_STATUSES = ["pending", "accepted", "picked_up", "on_the_way", "delivered"];
 
 const userSchema = new Schema({
