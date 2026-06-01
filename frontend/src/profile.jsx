@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft, Camera, Save, LogOut, UserPlus, LogIn, Sparkles, LayoutDashboard,
   Receipt, ShoppingBag, ChevronRight, User, Store, Bike, ShieldCheck,
-  Pencil, MapPin, LocateFixed, X, ZoomIn, ZoomOut,
+  Pencil, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import { ThemeToggle } from "./components.jsx";
+import { LocationMap } from "./LocationMap.jsx";
 
 const FRAME = 256; // crop viewport + output size
 
@@ -20,7 +21,6 @@ export function ProfileScreen({ go, theme, setTheme }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState("");
-  const [gettingLoc, setGettingLoc] = useState(false);
 
   // photo-crop modal state
   const [cropSrc, setCropSrc] = useState(null);
@@ -127,30 +127,6 @@ export function ProfileScreen({ go, theme, setTheme }) {
     img.src = cropSrc;
   };
 
-  /* ---- live location + reverse geocode ---- */
-  const useLiveLocation = () => {
-    if (!navigator.geolocation) { setErr("Geolocation isn't supported on this device."); return; }
-    setGettingLoc(true); setErr("");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = +pos.coords.latitude.toFixed(6);
-        const lng = +pos.coords.longitude.toFixed(6);
-        setFormData((f) => ({ ...f, lat, lng }));
-        try {
-          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { Accept: "application/json" } });
-          const d = await r.json();
-          if (d?.display_name) setFormData((f) => ({ ...f, address: d.display_name }));
-          else setFormData((f) => ({ ...f, address: `${lat}, ${lng}` }));
-        } catch {
-          setFormData((f) => ({ ...f, address: `${lat}, ${lng}` }));
-        }
-        setGettingLoc(false);
-      },
-      (e) => { setErr(e.code === 1 ? "Location permission denied." : "Couldn't get your location."); setGettingLoc(false); },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
   const handleSave = async () => {
     setSaving(true); setErr(""); setSaved(false);
     try {
@@ -247,12 +223,6 @@ export function ProfileScreen({ go, theme, setTheme }) {
     ? <img src={formData.picture} alt="Profile" />
     : (formData.name ? <span className="pa-fallback">{initial}</span> : <User size={46} strokeWidth={1.6} className="pa-fallback-icon" />);
 
-  const hasLoc = formData.lat != null && formData.lng != null;
-  const d = 0.004;
-  const mapSrc = hasLoc
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${formData.lng - d}%2C${formData.lat - d}%2C${formData.lng + d}%2C${formData.lat + d}&layer=mapnik&marker=${formData.lat}%2C${formData.lng}`
-    : null;
-
   const g = geom(zoom, offset);
 
   return (
@@ -322,24 +292,21 @@ export function ProfileScreen({ go, theme, setTheme }) {
         </div>
       </div>
 
-      {/* Delivery location + map */}
+      {/* Delivery location + route */}
       <div className="profile-section">
-        <h3>Delivery location</h3>
+        <h3>Delivery location &amp; route</h3>
         <div className="glass profile-card" style={{ paddingBottom: 16 }}>
-          {editing && (
-            <button className="profile-cta-secondary" onClick={useLiveLocation} disabled={gettingLoc} style={{ marginBottom: hasLoc ? 14 : 0 }}>
-              <LocateFixed size={18} /> {gettingLoc ? "Locating…" : "Use my live location"}
-            </button>
-          )}
-          {hasLoc ? (
-            <>
-              <div className="profile-map">
-                <iframe title="Your location" src={mapSrc} loading="lazy" />
-              </div>
-              <div className="profile-coords"><MapPin size={13} /> {formData.lat}, {formData.lng}</div>
-            </>
-          ) : (
-            !editing && <p style={{ color: "var(--muted)", fontSize: 13 }}>No saved location yet. Tap <b>Edit profile</b> → <b>Use my live location</b>.</p>
+          <LocationMap
+            value={{ lat: formData.lat, lng: formData.lng }}
+            editing={editing}
+            onChange={(lat, lng, address) =>
+              setFormData((f) => ({ ...f, lat, lng, ...(address ? { address } : {}) }))
+            }
+          />
+          {!editing && formData.lat == null && (
+            <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 10 }}>
+              No saved location yet. Tap <b>Edit profile</b>, then search or use your live location.
+            </p>
           )}
         </div>
       </div>
