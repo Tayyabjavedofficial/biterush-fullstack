@@ -9,8 +9,8 @@ const router = Router();
 const round2 = (n) => Math.round(n * 100) / 100;
 const DELIVERY_FEE = 2.99;
 
-// POST /api/orders — customer places an order (optional promo_code + payment)
-router.post("/", authRequired, async (req, res) => {
+// POST /api/orders — ONLY customers can place orders (per role matrix)
+router.post("/", authRequired, requireRole("customer"), async (req, res) => {
   const { items, address, payment, promo_code, payment_details, idempotency_key } = req.body || {};
   if (!Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: "Order must contain at least one item" });

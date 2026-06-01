@@ -58,12 +58,13 @@ export async function seed() {
     const isDemo = r.name === "Burger Flame";
     let doc = await Restaurant.findOne({ name: r.name });
     if (!doc) {
-      doc = await Restaurant.create({ ...r, owner_id: isDemo ? owner?._id || null : null });
+      doc = await Restaurant.create({ ...r, approved: true, owner_id: isDemo ? owner?._id || null : null });
     } else {
       // backfill the new fields onto any pre-existing doc
       doc.cuisine ||= r.cuisine; doc.image ||= r.image; doc.time ||= r.time;
       if (doc.lat == null) doc.lat = r.lat;
       if (doc.lng == null) doc.lng = r.lng;
+      doc.approved = true; // seeded restaurants are pre-approved
       if (isDemo && !doc.owner_id && owner) doc.owner_id = owner._id;
       await doc.save();
     }

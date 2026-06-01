@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package, MessageCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, RefreshCw, MapPin, Package, MessageCircle, Check } from "lucide-react";
 import { ThemeToggle } from "./components.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { api } from "./api.js";
@@ -87,7 +87,7 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const load = async () => {
     try {
       const [s, o, u, r, c, p] = await Promise.all([
-        api.adminStats(), api.allOrders(), api.adminUsers(), api.restaurants(), api.categories(), api.promos(),
+        api.adminStats(), api.allOrders(), api.adminUsers(), api.manageRestaurants(), api.categories(), api.promos(),
       ]);
       setStats(s); setOrders(o); setUsers(u); setRestaurants(r); setCategories(c); setPromos(p);
     } catch (e) { setErr(e.message); }
@@ -101,6 +101,7 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const setOrderStatus = async (id, status) => { try { await api.updateOrderStatus(id, status); load(); } catch (e) { setErr(e.message); } };
   const addRest = async () => { if (!newRest.name) return; try { await api.createRestaurant(newRest); setNewRest({ name: "", address: "", cuisine: "", image: "🍽️" }); load(); } catch (e) { setErr(e.message); } };
   const delRest = async (id) => { try { await api.deleteRestaurant(id); load(); } catch (e) { setErr(e.message); } };
+  const setApproved = async (id, approved) => { try { await api.updateRestaurant(id, { approved }); load(); } catch (e) { setErr(e.message); } };
   const addPromo = async () => {
     if (!newPromo.code || newPromo.value === "") { setErr("Promo code and value are required"); return; }
     try { await api.createPromo({ ...newPromo, value: Number(newPromo.value), min_order: Number(newPromo.min_order) || 0 }); setNewPromo({ code: "", type: "percent", value: "", min_order: "" }); setErr(""); load(); }
@@ -227,9 +228,20 @@ export function AdminDashboard({ go, theme, setTheme }) {
             <button className="cta" onClick={addRest}><Plus size={16} /> Add restaurant</button>
           </div>
           {restaurants.map((r) => (
-            <div key={r.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div><div style={{ fontWeight: 700 }}>{r.name}</div><div style={{ fontSize: 12, color: "var(--muted)" }}>{r.address || "—"} · ⭐ {r.rating}</div></div>
-              <button className="icon-btn" onClick={() => delRest(r.id)}><Trash2 size={16} /></button>
+            <div key={r.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700 }}>{r.image} {r.name}</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>{r.cuisine || r.address || "—"} · ⭐ {r.rating}</div>
+                </div>
+                {statusPill(r.approved ? "Approved" : "Pending", r.approved)}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                {r.approved
+                  ? <button className="profile-cta-secondary" style={{ flex: 1 }} onClick={() => setApproved(r.id, false)}>Revoke</button>
+                  : <button className="cta" style={{ flex: 1 }} onClick={() => setApproved(r.id, true)}><Check size={16} /> Approve</button>}
+                <button className="icon-btn" onClick={() => delRest(r.id)}><Trash2 size={16} /></button>
+              </div>
             </div>
           ))}
         </>
@@ -295,16 +307,18 @@ export function OwnerDashboard({ go, theme, setTheme }) {
   const [orders, setOrders] = useState([]);
   const [foods, setFoods] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [restaurant, setRestaurant] = useState(null);
   const [err, setErr] = useState("");
   const [chatOrder, setChatOrder] = useState(null);
   const [form, setForm] = useState({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" });
 
   const load = async () => {
     try {
-      const [o, allFoods, c] = await Promise.all([api.restaurantOrders(), api.foods(), api.categories()]);
+      const [o, allFoods, c, r] = await Promise.all([api.restaurantOrders(), api.foods(), api.categories(), api.myRestaurant()]);
       setOrders(o);
       setFoods(allFoods.filter((f) => String(f.owner_id) === String(user.id)));
       setCategories(c);
+      setRestaurant(r);
     } catch (e) { setErr(e.message); }
   };
   useEffect(() => { if (user) load(); }, [user]);
@@ -325,6 +339,12 @@ export function OwnerDashboard({ go, theme, setTheme }) {
     <div className="page">
       <DashHead title="Restaurant Dashboard" go={go} theme={theme} setTheme={setTheme} />
       {err && <div className="err" style={{ marginBottom: 14 }}>{err}</div>}
+      {restaurant && !restaurant.approved && (
+        <div className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 14, borderLeft: "3px solid var(--star)" }}>
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>⏳ Pending admin approval</div>
+          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>Your restaurant isn't visible to customers yet. You can set up your menu now — it goes live once an admin approves <b>{restaurant.name}</b>.</div>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
         {statCard("Orders", orders.length)}

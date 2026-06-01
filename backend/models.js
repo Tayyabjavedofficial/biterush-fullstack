@@ -52,6 +52,7 @@ const restaurantSchema = new Schema({
   lat: { type: Number, default: null },
   lng: { type: Number, default: null },
   rating: { type: Number, default: 4.5 },
+  approved: { type: Boolean, default: false }, // admin must approve before it goes live
   created_at: { type: Date, default: Date.now },
 });
 toJSON(restaurantSchema);

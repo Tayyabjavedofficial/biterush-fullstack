@@ -49,6 +49,8 @@ export const api = {
 
   // ---- restaurants ----
   restaurants: () => request("/restaurants"),
+  manageRestaurants: () => request("/restaurants/manage", { auth: true }),
+  myRestaurant: () => request("/restaurants/mine", { auth: true }),
   restaurant: (id) => request("/restaurants/" + id),
   restaurantFoods: (id) => request("/restaurants/" + id + "/foods"),
   createRestaurant: (b) => request("/restaurants", { method: "POST", body: b, auth: true }),

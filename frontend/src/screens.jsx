@@ -863,6 +863,19 @@ export function Checkout({ go, theme, setTheme }) {
     );
   }
 
+  if (user.role !== "customer") {
+    return (
+      <div className="page">
+        <div className="page-head">
+          <button className="icon-btn" onClick={() => go("home")}><ArrowLeft size={19} /></button>
+          <h1>Checkout</h1>
+          <ThemeToggle theme={theme} setTheme={setTheme} />
+        </div>
+        <div className="empty"><div className="big">🛍️</div><h3>Customer accounts only</h3><p>Placing orders is available to customer accounts. Owner, rider, and admin accounts manage the platform rather than order food.</p><button className="cta inline" onClick={() => go("home")}>Back to home</button></div>
+      </div>
+    );
+  }
+
   const options = [
     { id: "Cash on Delivery", icon: Wallet, sub: "Pay with cash on arrival" },
     { id: "Card", icon: CreditCard, sub: "Visa · Mastercard" },
