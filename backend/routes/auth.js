@@ -14,7 +14,10 @@ router.post("/register", async (req, res) => {
   if (password.length < 4)
     return res.status(400).json({ error: "Password must be at least 4 characters" });
 
-  const wantRole = ROLES.includes(role) ? role : "customer";
+  // Admin can NEVER be self-assigned at signup — only an existing admin may
+  // promote a user to admin (via the admin Users tab). Prevents rogue admins.
+  const SELF_SIGNUP_ROLES = ["customer", "owner", "delivery_rider"];
+  const wantRole = SELF_SIGNUP_ROLES.includes(role) ? role : "customer";
 
   const exists = await User.findOne({ email: email.toLowerCase() });
   if (exists) return res.status(409).json({ error: "Email already registered" });

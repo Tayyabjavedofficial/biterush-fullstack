@@ -116,7 +116,6 @@ export function Auth({ onDone, onBack, theme, setTheme }) {
                 <option value="customer">👤 Customer - Order food</option>
                 <option value="owner">🏪 Restaurant Owner - Manage a menu</option>
                 <option value="delivery_rider">🚴 Delivery Rider - Deliver orders</option>
-                <option value="admin">👨‍💼 Admin - Manage platform</option>
               </select>
             </div>
           </>
