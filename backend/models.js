@@ -46,6 +46,11 @@ const restaurantSchema = new Schema({
   owner_id: { type: Schema.Types.ObjectId, ref: "User" },
   address: { type: String, default: "" },
   phone: { type: String, default: "" },
+  cuisine: { type: String, default: "" },
+  image: { type: String, default: "🍽️" },
+  time: { type: String, default: "25 min" },
+  lat: { type: Number, default: null },
+  lng: { type: Number, default: null },
   rating: { type: Number, default: 4.5 },
   created_at: { type: Date, default: Date.now },
 });

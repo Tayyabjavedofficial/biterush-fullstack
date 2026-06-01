@@ -43,18 +43,34 @@ export async function seed() {
     if (!exists) await User.create({ ...acc, password: hash });
   }
 
-  // Demo restaurant owned by the demo owner.
+  // Restaurants (for the Search page + nearest). Burger Flame is the demo owner's.
+  const restaurants = [
+    { name: "Burger Flame", cuisine: "American, Burgers", image: "🍔", rating: 4.8, lat: 40.7128, lng: -74.006, time: "25 min", address: "Downtown" },
+    { name: "Pizza Craft", cuisine: "Italian, Pizza", image: "🍕", rating: 4.7, lat: 40.758, lng: -73.9855, time: "30 min", address: "Midtown" },
+    { name: "Nom Nom House", cuisine: "Asian, Chinese", image: "🍛", rating: 4.6, lat: 40.7489, lng: -73.968, time: "20 min", address: "East Side" },
+    { name: "Crunch Kitchen", cuisine: "Fast Food, Sides", image: "🍟", rating: 4.5, lat: 40.7505, lng: -74.006, time: "18 min", address: "West Plaza" },
+    { name: "Coffee Corner", cuisine: "Cafe, Beverages", image: "☕", rating: 4.4, lat: 40.7614, lng: -73.9776, time: "10 min", address: "City Center" },
+    { name: "Sweet Bites", cuisine: "Desserts, Bakery", image: "🍰", rating: 4.9, lat: 40.7505, lng: -74.0, time: "5 min", address: "Arts District" },
+  ];
   const owner = await User.findOne({ email: "owner@biterush.com" });
-  let restaurant = await Restaurant.findOne({ owner_id: owner?._id });
-  if (owner && !restaurant) {
-    restaurant = await Restaurant.create({
-      name: "Burger Flame",
-      owner_id: owner._id,
-      address: "Naperville, IL",
-      phone: "+1 630 555 0142",
-      rating: 4.8,
-    });
-    owner.restaurant_id = restaurant._id;
+  let demoRestaurant = null;
+  for (const r of restaurants) {
+    const isDemo = r.name === "Burger Flame";
+    let doc = await Restaurant.findOne({ name: r.name });
+    if (!doc) {
+      doc = await Restaurant.create({ ...r, owner_id: isDemo ? owner?._id || null : null });
+    } else {
+      // backfill the new fields onto any pre-existing doc
+      doc.cuisine ||= r.cuisine; doc.image ||= r.image; doc.time ||= r.time;
+      if (doc.lat == null) doc.lat = r.lat;
+      if (doc.lng == null) doc.lng = r.lng;
+      if (isDemo && !doc.owner_id && owner) doc.owner_id = owner._id;
+      await doc.save();
+    }
+    if (isDemo) demoRestaurant = doc;
+  }
+  if (owner && demoRestaurant && String(owner.restaurant_id) !== String(demoRestaurant._id)) {
+    owner.restaurant_id = demoRestaurant._id;
     await owner.save();
   }
 
@@ -62,8 +78,8 @@ export async function seed() {
     // Attach the first two foods to the demo restaurant so the owner dashboard
     // has data to show; the rest stay as platform foods.
     const docs = foods.map((f, i) =>
-      i < 2 && restaurant
-        ? { ...f, restaurant: restaurant.name, restaurant_id: restaurant._id, owner_id: owner._id }
+      i < 2 && demoRestaurant
+        ? { ...f, restaurant: demoRestaurant.name, restaurant_id: demoRestaurant._id, owner_id: owner?._id }
         : f
     );
     await Food.insertMany(docs);

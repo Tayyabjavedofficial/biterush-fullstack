@@ -458,6 +458,10 @@ body { margin: 0; background: #0F1117; }
   margin:10px 2px 2px;line-height:1.4;}
 .pay-secure svg{flex-shrink:0;margin-top:1px;}
 
+/* ---------- restaurant search rows ---------- */
+.restaurant-row{padding:14px;border-radius:16px;cursor:pointer;transition:transform .15s ease;}
+.restaurant-row:hover{transform:translateY(-2px);}
+
 /* photo adjust (crop) modal */
 .crop-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
   background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
