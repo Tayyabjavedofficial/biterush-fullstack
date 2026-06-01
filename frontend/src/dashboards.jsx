@@ -38,7 +38,7 @@ const statCard = (label, value) => (
 );
 
 const ORDER_LABELS = {
-  PLACED: "Placed", PREPARING: "Preparing", READY: "Ready",
+  PENDING: "Pending", PREPARING: "Preparing", READY: "Ready",
   ON_THE_WAY: "On the way", DELIVERED: "Delivered", CANCELLED: "Cancelled",
 };
 const statusPill = (label, active) => (
@@ -101,6 +101,7 @@ export function AdminDashboard({ go, theme, setTheme }) {
 
   const setRole = async (id, role) => { try { await api.updateUser(id, { role }); load(); } catch (e) { setErr(e.message); } };
   const delUser = async (id) => { try { await api.deleteUser(id); load(); } catch (e) { setErr(e.message); } };
+  const toggleBlock = async (id, blocked) => { try { await api.updateUser(id, { blocked }); load(); } catch (e) { setErr(e.message); } };
   const setOrderStatus = async (id, status) => { try { await api.updateOrderStatus(id, status); load(); } catch (e) { setErr(e.message); } };
   const addRest = async () => { if (!newRest.name) return; try { await api.createRestaurant(newRest); setNewRest({ name: "", address: "", cuisine: "", image: "🍽️" }); load(); } catch (e) { setErr(e.message); } };
   const delRest = async (id) => { try { await api.deleteRestaurant(id); load(); } catch (e) { setErr(e.message); } };
@@ -214,18 +215,27 @@ export function AdminDashboard({ go, theme, setTheme }) {
         )))}
 
       {tab === "users" && users.map((u) => (
-        <div key={u.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</div>
+        <div key={u.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {u.name} {u.blocked && <span style={{ color: "#ef4444", fontSize: 11 }}>· Blocked</span>}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</div>
+            </div>
+            <select className="dash-select" style={{ width: 130 }} value={u.role} onChange={(e) => setRole(u.id, e.target.value)}>
+              <option value="customer">Customer</option>
+              <option value="owner">Owner</option>
+              <option value="delivery_rider">Rider</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
-          <select className="dash-select" style={{ width: 140 }} value={u.role} onChange={(e) => setRole(u.id, e.target.value)}>
-            <option value="customer">Customer</option>
-            <option value="owner">Owner</option>
-            <option value="delivery_rider">Rider</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button className="icon-btn" title="Delete" onClick={() => delUser(u.id)}><Trash2 size={16} /></button>
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            {u.blocked
+              ? <button className="cta" style={{ flex: 1 }} onClick={() => toggleBlock(u.id, false)}>Unblock</button>
+              : <button className="profile-cta-secondary btn-danger" style={{ flex: 1 }} onClick={() => toggleBlock(u.id, true)}>Block</button>}
+            <button className="icon-btn" title="Delete" onClick={() => delUser(u.id)}><Trash2 size={16} /></button>
+          </div>
         </div>
       ))}
 
@@ -346,17 +356,20 @@ export function OwnerDashboard({ go, theme, setTheme }) {
   const [foods, setFoods] = useState([]);
   const [categories, setCategories] = useState([]);
   const [restaurant, setRestaurant] = useState(null);
+  const [riders, setRiders] = useState([]);
+  const [assignSel, setAssignSel] = useState({});
   const [err, setErr] = useState("");
   const [chatOrder, setChatOrder] = useState(null);
   const [form, setForm] = useState({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" });
 
   const load = async () => {
     try {
-      const [o, allFoods, c, r] = await Promise.all([api.restaurantOrders(), api.foods(), api.categories(), api.myRestaurant()]);
+      const [o, allFoods, c, r, rd] = await Promise.all([api.restaurantOrders(), api.foods(), api.categories(), api.myRestaurant(), api.riders()]);
       setOrders(o);
       setFoods(allFoods.filter((f) => String(f.owner_id) === String(user.id)));
       setCategories(c);
       setRestaurant(r);
+      setRiders(rd);
     } catch (e) { setErr(e.message); }
   };
   useEffect(() => { if (user) load(); }, [user]);
@@ -364,8 +377,8 @@ export function OwnerDashboard({ go, theme, setTheme }) {
   if (!user) return <SignInGate title="Restaurant Dashboard" emoji="🏪" msg="Only restaurant owners can access this." go={go} theme={theme} setTheme={setTheme} />;
 
   const revenue = Math.round(orders.filter((o) => o.status !== "CANCELLED").reduce((s, o) => s + o.total, 0) * 100) / 100;
-  const next = { PLACED: "PREPARING", PREPARING: "READY" };
-  const advance = async (o) => { const n = next[o.status]; if (!n) return; try { await api.updateOrderStatus(o.id, n); load(); } catch (e) { setErr(e.message); } };
+  const setStatus = async (id, status) => { try { await api.updateOrderStatus(id, status); load(); } catch (e) { setErr(e.message); } };
+  const assign = async (id) => { if (!assignSel[id]) return; try { await api.assignRider(id, assignSel[id]); load(); } catch (e) { setErr(e.message); } };
   const addFood = async () => {
     if (!form.name || form.price === "") { setErr("Name and price are required"); return; }
     try { await api.createFood({ ...form, price: Number(form.price) }); setForm({ name: "", category: "", price: "", description: "", emoji: "🍔", img: "" }); setErr(""); load(); }
@@ -398,9 +411,29 @@ export function OwnerDashboard({ go, theme, setTheme }) {
             {statusPill(ORDER_LABELS[o.status], true)}
           </div>
           <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>{o.items?.length || 0} item(s) · ${o.total}</div>
-          {next[o.status]
-            ? <button className="cta" onClick={() => advance(o)}>{o.status === "PLACED" ? "Start preparing" : "Mark ready"}</button>
-            : <span style={{ fontSize: 12, color: "var(--muted)" }}>{o.status === "READY" ? "Awaiting rider pickup" : ORDER_LABELS[o.status]}</span>}
+
+          {o.status === "PENDING" && (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="cta" style={{ flex: 1 }} onClick={() => setStatus(o.id, "PREPARING")}><Check size={16} /> Accept</button>
+              <button className="profile-cta-secondary btn-danger" style={{ flex: 1 }} onClick={() => setStatus(o.id, "CANCELLED")}>Reject</button>
+            </div>
+          )}
+          {o.status === "PREPARING" && (
+            <button className="cta" onClick={() => setStatus(o.id, "READY")}>Mark ready for pickup</button>
+          )}
+          {o.status === "READY" && (
+            <div style={{ display: "flex", gap: 8 }}>
+              <select className="dash-select" style={{ flex: 1 }} value={assignSel[o.id] || ""} onChange={(e) => setAssignSel({ ...assignSel, [o.id]: e.target.value })}>
+                <option value="">{o.rider_id ? "Reassign rider…" : "Assign a rider…"}</option>
+                {riders.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+              <button className="cta" style={{ width: "auto", padding: "10px 16px" }} onClick={() => assign(o.id)} disabled={!assignSel[o.id]}>Assign</button>
+            </div>
+          )}
+          {["ON_THE_WAY", "DELIVERED", "CANCELLED"].includes(o.status) && (
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>{ORDER_LABELS[o.status]}{o.rider_id ? " · rider assigned" : ""}</span>
+          )}
+
           <button className="order-chat-btn" onClick={() => setChatOrder(o.id)}>
             <MessageCircle size={16} /> Chat with customer
           </button>
@@ -463,7 +496,6 @@ export function DeliveryBoyDashboard({ go, theme, setTheme }) {
 
   const completed = deliveries.filter((d) => d.status === "delivered").length;
   const inProgress = deliveries.filter((d) => ["accepted", "picked_up", "on_the_way"].includes(d.status)).length;
-  const available = deliveries.filter((d) => d.status === "pending").length;
 
   const NEXT = { pending: "accepted", accepted: "picked_up", picked_up: "on_the_way", on_the_way: "delivered" };
   const LABEL = { pending: "Available", accepted: "Accepted", picked_up: "Picked up", on_the_way: "On the way", delivered: "Delivered" };
@@ -478,22 +510,27 @@ export function DeliveryBoyDashboard({ go, theme, setTheme }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 18 }}>
         {statCard("Completed", completed)}
         {statCard("In progress", inProgress)}
-        {statCard("Available", available)}
+        {statCard("Assigned", deliveries.length)}
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <h3>Deliveries</h3>
         <button className="icon-btn" onClick={load} title="Refresh"><RefreshCw size={16} /></button>
       </div>
-      {deliveries.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>No deliveries available right now.</p>}
+      {deliveries.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>No deliveries assigned to you yet.</p>}
       {deliveries.map((d) => (
         <div key={d.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <strong><Package size={14} style={{ verticalAlign: "-2px" }} /> Order #{d.order?.id?.slice(-5) || "—"}</strong>
             {statusPill(LABEL[d.status], d.status !== "pending")}
           </div>
+          {d.pickup && (
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+              <Package size={13} /> Pickup: {d.pickup.name}
+            </div>
+          )}
           <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-            <MapPin size={13} /> {d.order?.address || "No address"}
+            <MapPin size={13} /> Drop-off: {d.order?.address || "No address"}
           </div>
           <div style={{ fontSize: 12, marginBottom: 10 }}>${d.order?.total ?? "—"} · ETA {d.estimated_time || "—"}</div>
           {NEXT[d.status]

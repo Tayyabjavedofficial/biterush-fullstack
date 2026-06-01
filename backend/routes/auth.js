@@ -40,6 +40,7 @@ router.post("/login", async (req, res) => {
   const user = await User.findOne({ email: (email || "").toLowerCase() });
   if (!user || !bcrypt.compareSync(password || "", user.password))
     return res.status(401).json({ error: "Invalid email or password" });
+  if (user.blocked) return res.status(403).json({ error: "Your account has been blocked. Contact support." });
 
   res.json({ token: signToken(user), user: publicUser(user) });
 });

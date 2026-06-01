@@ -1,33 +1,40 @@
 import { Router } from "express";
 import mongoose from "mongoose";
-import { Delivery, Order, DELIVERY_STATUSES } from "../models.js";
+import { Delivery, Order, Restaurant, User, DELIVERY_STATUSES } from "../models.js";
 import { authRequired, requireRole } from "../auth.js";
 
 const router = Router();
 
-// Attach a light order summary to each delivery for the rider UI.
+// Attach order + pickup-restaurant info to each delivery for the rider UI.
 async function withOrder(deliveries) {
   const out = [];
   for (const d of deliveries) {
     const order = await Order.findById(d.order_id);
+    const restaurant = order?.restaurant_id ? await Restaurant.findById(order.restaurant_id) : null;
     const j = d.toJSON();
     j.order = order
       ? { id: order.id, address: order.address, total: order.total, items: order.items, status: order.status }
       : null;
+    j.pickup = restaurant ? { name: restaurant.name, address: restaurant.address } : null;
     out.push(j);
   }
   return out;
 }
 
-// GET /api/deliveries/assigned — rider sees their deliveries + the available pool
+// GET /api/deliveries/riders — owner/admin: list of riders to assign
+router.get("/riders", authRequired, requireRole("owner", "admin"), async (_req, res) => {
+  const riders = await User.find({ role: "delivery_rider", blocked: { $ne: true } }).select("name email");
+  res.json(riders.map((r) => ({ id: r.id, name: r.name, email: r.email })));
+});
+
+// GET /api/deliveries/assigned — rider sees ONLY orders assigned to them (FR-RID-001)
 router.get("/assigned", authRequired, requireRole("delivery_rider", "admin"), async (req, res) => {
-  const mine = await Delivery.find({
-    $or: [{ delivery_boy_id: req.user.id }, { delivery_boy_id: null, status: "pending" }],
-  }).sort({ created_at: -1 });
+  const filter = req.user.role === "admin" ? {} : { delivery_boy_id: req.user.id };
+  const mine = await Delivery.find(filter).sort({ created_at: -1 });
   res.json(await withOrder(mine));
 });
 
-// PUT /api/deliveries/:id/status — rider accepts / advances a delivery
+// PUT /api/deliveries/:id/status — rider advances picked_up / on_the_way / delivered
 router.put("/:id/status", authRequired, requireRole("delivery_rider", "admin"), async (req, res) => {
   const { status } = req.body || {};
   if (!DELIVERY_STATUSES.includes(status))
@@ -37,10 +44,6 @@ router.put("/:id/status", authRequired, requireRole("delivery_rider", "admin"), 
   const delivery = await Delivery.findById(req.params.id);
   if (!delivery) return res.status(404).json({ error: "Delivery not found" });
 
-  // Accepting a pending delivery assigns it to this rider.
-  if (status === "accepted" && !delivery.delivery_boy_id) {
-    delivery.delivery_boy_id = req.user.id;
-  }
   if (
     req.user.role === "delivery_rider" &&
     delivery.delivery_boy_id &&
@@ -52,12 +55,16 @@ router.put("/:id/status", authRequired, requireRole("delivery_rider", "admin"), 
   delivery.status = status;
   await delivery.save();
 
-  // Keep the parent order's status in sync (simulated tracking).
+  // Keep the parent order's status + history in sync (simulated tracking).
   const order = await Order.findById(delivery.order_id);
   if (order) {
-    if (status === "delivered") order.status = "DELIVERED";
-    else if (["picked_up", "on_the_way", "accepted"].includes(status)) order.status = "ON_THE_WAY";
-    await order.save();
+    const next = status === "delivered" ? "DELIVERED"
+      : ["picked_up", "on_the_way"].includes(status) ? "ON_THE_WAY" : null;
+    if (next && order.status !== next) {
+      order.status = next;
+      order.status_history.push({ status: next, at: new Date() });
+      await order.save();
+    }
   }
 
   res.json(delivery.toJSON());

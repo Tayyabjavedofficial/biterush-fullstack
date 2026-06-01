@@ -982,7 +982,7 @@ export function Checkout({ go, theme, setTheme }) {
 
 /* Simulated order-status timeline */
 const ORDER_STEPS = [
-  { key: "PLACED", label: "Order placed" },
+  { key: "PENDING", label: "Order placed" },
   { key: "PREPARING", label: "Preparing your food" },
   { key: "READY", label: "Ready for pickup" },
   { key: "ON_THE_WAY", label: "On the way" },

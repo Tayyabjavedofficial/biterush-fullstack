@@ -16,7 +16,7 @@ function toJSON(schema) {
 }
 
 export const ROLES = ["customer", "owner", "delivery_rider", "admin"];
-export const ORDER_STATUSES = ["PLACED", "PREPARING", "READY", "ON_THE_WAY", "DELIVERED", "CANCELLED"];
+export const ORDER_STATUSES = ["PENDING", "PREPARING", "READY", "ON_THE_WAY", "DELIVERED", "CANCELLED"];
 export const DELIVERY_STATUSES = ["pending", "accepted", "picked_up", "on_the_way", "delivered"];
 
 const userSchema = new Schema({
@@ -31,6 +31,7 @@ const userSchema = new Schema({
   lat: { type: Number, default: null },
   lng: { type: Number, default: null },
   pubkey: { type: String, default: "" }, // ECDH public key (JWK string) for E2E chat
+  blocked: { type: Boolean, default: false }, // admin can block/unblock
   created_at: { type: Date, default: Date.now },
 });
 toJSON(userSchema);
@@ -88,9 +89,15 @@ const orderItemSchema = new Schema(
   { _id: false }
 );
 
+const statusEventSchema = new Schema(
+  { status: { type: String }, at: { type: Date, default: Date.now } },
+  { _id: false }
+);
+
 const orderSchema = new Schema({
   user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
   restaurant_id: { type: Schema.Types.ObjectId, ref: "Restaurant", default: null },
+  rider_id: { type: Schema.Types.ObjectId, ref: "User", default: null },
   items: { type: [orderItemSchema], default: [] },
   subtotal: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
@@ -104,7 +111,8 @@ const orderSchema = new Schema({
   payment_last4: { type: String, default: "" },  // card last 4 only
   payment_wallet: { type: String, default: "" }, // masked mobile-wallet number
   idempotency_key: { type: String, default: "", index: true },
-  status: { type: String, enum: ORDER_STATUSES, default: "PLACED" },
+  status: { type: String, enum: ORDER_STATUSES, default: "PENDING" },
+  status_history: { type: [statusEventSchema], default: [] },
   created_at: { type: Date, default: Date.now },
 });
 toJSON(orderSchema);

@@ -39,6 +39,10 @@ router.put("/users/:id", async (req, res) => {
     user.role = req.body.role;
   }
   if (req.body.name !== undefined) user.name = req.body.name;
+  if (req.body.blocked !== undefined) {
+    if (req.params.id === req.user.id) return res.status(400).json({ error: "You cannot block your own account" });
+    user.blocked = !!req.body.blocked;
+  }
   await user.save();
   const { password, ...rest } = user.toJSON();
   res.json(rest);

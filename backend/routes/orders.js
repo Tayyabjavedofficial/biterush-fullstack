@@ -74,7 +74,8 @@ router.post("/", authRequired, requireRole("customer"), async (req, res) => {
     payment_last4: pay.last4 || "",
     payment_wallet: pay.wallet || "",
     idempotency_key: idem,
-    status: "PLACED",
+    status: "PENDING",
+    status_history: [{ status: "PENDING", at: new Date() }],
   });
 
   // Tamper-evident reference signed from the persisted order facts.
@@ -105,6 +106,7 @@ router.get("/all", authRequired, requireRole("admin"), async (_req, res) => {
 });
 
 // PUT /api/orders/:id/status — owner/admin advances order status
+// (Accept = PENDING→PREPARING, Reject = →CANCELLED). Records status history.
 router.put("/:id/status", authRequired, requireRole("owner", "admin"), async (req, res) => {
   const { status } = req.body || {};
   if (!ORDER_STATUSES.includes(status))
@@ -114,19 +116,38 @@ router.put("/:id/status", authRequired, requireRole("owner", "admin"), async (re
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
 
-  order.status = status;
+  if (order.status !== status) {
+    order.status = status;
+    order.status_history.push({ status, at: new Date() });
+  }
+  await order.save();
+  res.json(order.toJSON());
+});
+
+// PUT /api/orders/:id/assign — owner/admin assigns a rider to an accepted order
+router.put("/:id/assign", authRequired, requireRole("owner", "admin"), async (req, res) => {
+  const { rider_id } = req.body || {};
+  if (!mongoose.isValidObjectId(req.params.id))
+    return res.status(404).json({ error: "Order not found" });
+  const order = await Order.findById(req.params.id);
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  if (!mongoose.isValidObjectId(rider_id)) return res.status(400).json({ error: "Select a rider" });
+  const rider = await User.findById(rider_id);
+  if (!rider || rider.role !== "delivery_rider") return res.status(400).json({ error: "Not a valid rider" });
+
+  order.rider_id = rider._id;
   await order.save();
 
-  // Once a kitchen marks an order READY, create a pending delivery so riders
-  // can pick it up. (Simulated tracking — no real GPS.)
-  if (status === "READY") {
-    const existing = await Delivery.findOne({ order_id: order._id });
-    if (!existing) {
-      await Delivery.create({ order_id: order._id, status: "pending", estimated_time: "30 min" });
-    }
+  let delivery = await Delivery.findOne({ order_id: order._id });
+  if (delivery) {
+    delivery.delivery_boy_id = rider._id;
+    if (delivery.status === "pending") delivery.status = "accepted";
+  } else {
+    delivery = new Delivery({ order_id: order._id, delivery_boy_id: rider._id, status: "accepted", estimated_time: "30 min" });
   }
+  await delivery.save();
 
-  res.json(order.toJSON());
+  res.json({ ...order.toJSON(), rider_name: rider.name });
 });
 
 export default router;

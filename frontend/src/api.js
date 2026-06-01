@@ -65,9 +65,12 @@ export const api = {
   allOrders: () => request("/orders/all", { auth: true }),
   updateOrderStatus: (id, status) =>
     request("/orders/" + id + "/status", { method: "PUT", body: { status }, auth: true }),
+  assignRider: (id, rider_id) =>
+    request("/orders/" + id + "/assign", { method: "PUT", body: { rider_id }, auth: true }),
 
   // ---- deliveries (rider) ----
   assignedDeliveries: () => request("/deliveries/assigned", { auth: true }),
+  riders: () => request("/deliveries/riders", { auth: true }),
   updateDeliveryStatus: (id, status) =>
     request("/deliveries/" + id + "/status", { method: "PUT", body: { status }, auth: true }),
 
