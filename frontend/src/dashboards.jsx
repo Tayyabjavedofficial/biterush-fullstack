@@ -66,16 +66,18 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const [users, setUsers] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [promos, setPromos] = useState([]);
   const [err, setErr] = useState("");
-  const [newRest, setNewRest] = useState({ name: "", address: "" });
+  const [newRest, setNewRest] = useState({ name: "", address: "", cuisine: "", image: "🍽️" });
   const [newCat, setNewCat] = useState({ name: "", emoji: "" });
+  const [newPromo, setNewPromo] = useState({ code: "", type: "percent", value: "", min_order: "" });
 
   const load = async () => {
     try {
-      const [s, o, u, r, c] = await Promise.all([
-        api.adminStats(), api.allOrders(), api.adminUsers(), api.restaurants(), api.categories(),
+      const [s, o, u, r, c, p] = await Promise.all([
+        api.adminStats(), api.allOrders(), api.adminUsers(), api.restaurants(), api.categories(), api.promos(),
       ]);
-      setStats(s); setOrders(o); setUsers(u); setRestaurants(r); setCategories(c);
+      setStats(s); setOrders(o); setUsers(u); setRestaurants(r); setCategories(c); setPromos(p);
     } catch (e) { setErr(e.message); }
   };
   useEffect(() => { if (user) load(); }, [user]);
@@ -85,10 +87,16 @@ export function AdminDashboard({ go, theme, setTheme }) {
   const setRole = async (id, role) => { try { await api.updateUser(id, { role }); load(); } catch (e) { setErr(e.message); } };
   const delUser = async (id) => { try { await api.deleteUser(id); load(); } catch (e) { setErr(e.message); } };
   const setOrderStatus = async (id, status) => { try { await api.updateOrderStatus(id, status); load(); } catch (e) { setErr(e.message); } };
-  const addRest = async () => { if (!newRest.name) return; try { await api.createRestaurant(newRest); setNewRest({ name: "", address: "" }); load(); } catch (e) { setErr(e.message); } };
+  const addRest = async () => { if (!newRest.name) return; try { await api.createRestaurant(newRest); setNewRest({ name: "", address: "", cuisine: "", image: "🍽️" }); load(); } catch (e) { setErr(e.message); } };
   const delRest = async (id) => { try { await api.deleteRestaurant(id); load(); } catch (e) { setErr(e.message); } };
+  const addPromo = async () => {
+    if (!newPromo.code || newPromo.value === "") { setErr("Promo code and value are required"); return; }
+    try { await api.createPromo({ ...newPromo, value: Number(newPromo.value), min_order: Number(newPromo.min_order) || 0 }); setNewPromo({ code: "", type: "percent", value: "", min_order: "" }); setErr(""); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  const delPromo = async (id) => { try { await api.deletePromo(id); load(); } catch (e) { setErr(e.message); } };
 
-  const TABS = [["orders", "Orders"], ["users", "Users"], ["restaurants", "Restaurants"], ["categories", "Categories"]];
+  const TABS = [["orders", "Orders"], ["users", "Users"], ["restaurants", "Restaurants"], ["categories", "Categories"], ["promos", "Promos"]];
 
   return (
     <div className="page">
@@ -102,9 +110,9 @@ export function AdminDashboard({ go, theme, setTheme }) {
         {statCard("Restaurants", stats.totalRestaurants)}
       </div>
 
-      <div className="seg" style={{ marginBottom: 18 }}>
+      <div className="seg" style={{ marginBottom: 18, overflowX: "auto" }}>
         {TABS.map(([id, label]) => (
-          <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>{label}</button>
+          <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)} style={{ flex: "0 0 auto", padding: "10px 14px" }}>{label}</button>
         ))}
       </div>
 
@@ -142,10 +150,14 @@ export function AdminDashboard({ go, theme, setTheme }) {
       {tab === "restaurants" && (
         <>
           <div className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 14 }}>
-            <div className="field" style={{ marginBottom: 8 }}><label>New restaurant</label>
-              <input value={newRest.name} onChange={(e) => setNewRest({ ...newRest, name: e.target.value })} placeholder="Name" /></div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <input className="dash-input" value={newRest.image} onChange={(e) => setNewRest({ ...newRest, image: e.target.value })} placeholder="🍔" style={{ width: 60, textAlign: "center" }} />
+              <input className="dash-input" value={newRest.name} onChange={(e) => setNewRest({ ...newRest, name: e.target.value })} placeholder="Restaurant name" style={{ flex: 1 }} />
+            </div>
+            <div className="field" style={{ marginBottom: 8 }}>
+              <input value={newRest.cuisine} onChange={(e) => setNewRest({ ...newRest, cuisine: e.target.value })} placeholder="Cuisine (e.g. Italian, Pizza)" /></div>
             <div className="field" style={{ marginBottom: 10 }}>
-              <input value={newRest.address} onChange={(e) => setNewRest({ ...newRest, address: e.target.value })} placeholder="Address" /></div>
+              <input value={newRest.address} onChange={(e) => setNewRest({ ...newRest, address: e.target.value })} placeholder="Address / area" /></div>
             <button className="cta" onClick={addRest}><Plus size={16} /> Add restaurant</button>
           </div>
           {restaurants.map((r) => (
@@ -170,6 +182,37 @@ export function AdminDashboard({ go, theme, setTheme }) {
             <div key={c.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontWeight: 700 }}>{c.emoji} {c.name}</div>
               <button className="icon-btn" onClick={async () => { try { await api.deleteCategory(c.id); load(); } catch (e) { setErr(e.message); } }}><Trash2 size={16} /></button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {tab === "promos" && (
+        <>
+          <div className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <input className="dash-input" value={newPromo.code} onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })} placeholder="CODE" style={{ flex: 1 }} />
+              <select className="dash-select" value={newPromo.type} onChange={(e) => setNewPromo({ ...newPromo, type: e.target.value })} style={{ width: 110 }}>
+                <option value="percent">% off</option>
+                <option value="flat">$ off</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input className="dash-input" type="number" value={newPromo.value} onChange={(e) => setNewPromo({ ...newPromo, value: e.target.value })} placeholder={newPromo.type === "percent" ? "10 (%)" : "5 ($)"} style={{ flex: 1 }} />
+              <input className="dash-input" type="number" value={newPromo.min_order} onChange={(e) => setNewPromo({ ...newPromo, min_order: e.target.value })} placeholder="Min order $" style={{ flex: 1 }} />
+            </div>
+            <button className="cta" onClick={addPromo}><Plus size={16} /> Add promo code</button>
+          </div>
+          {promos.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>No promo codes yet.</p>}
+          {promos.map((p) => (
+            <div key={p.id} className="glass" style={{ padding: 14, borderRadius: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 800, fontFamily: "var(--font-display)" }}>{p.code}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                  {p.type === "percent" ? `${p.value}% off` : `$${p.value} off`}{p.min_order > 0 ? ` · min $${p.min_order}` : ""}
+                </div>
+              </div>
+              <button className="icon-btn" onClick={() => delPromo(p.id)}><Trash2 size={16} /></button>
             </div>
           ))}
         </>
